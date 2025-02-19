@@ -1,12 +1,13 @@
 ###load_and_clean_data.R
 
+###STATUS: COMPLETE, NO RUN ERRORS
+
 ### HCUP NASS 2020 Data Analysis
 ### Author: SgtKlinger
 ### Date: 2025-02-10
 
 ### Description: This script loads and cleans the
 ### HCUP NASS 2020 data and outputs the combined file
-
 
 # List of required packages
 required_packages <- 
@@ -77,14 +78,21 @@ rm(new_colnames)
 gc()
 
 # convert all but a few columns to factor (categorical) variables
-# define Age groups
+
 NASS_2020_all$DISCWT <- as.numeric(NASS_2020_all$DISCWT)
 cols_to_factor <- setdiff(names(NASS_2020_all), c("AGE", "DISCWT", "TOTCHG","TOTAL_AS_ENCOUNTERS"))
 NASS_2020_all[, (cols_to_factor) := lapply(.SD, as.factor), .SDcols = cols_to_factor]
 rm(cols_to_factor)
-NASS_2020_all$AGEGRP <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 40, 55, 65, 70, 80, Inf), 
-    labels = c("0-17", "18-39", "40-54", "55-64", "65-69", "70-79", "80+"), right = FALSE)
+
+# define coarse Age groups (peds, adult, >65)
+NASS_2020_all$AGEGRP <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 65, Inf), 
+    labels = c("0-17", "18-64", "65+"), right = FALSE)
 NASS_2020_all$AGEGRP <- as.factor(NASS_2020_all$AGEGRP)
+
+# define more granular Age groups (peds, adult < 40, 40-54, 55-65, 65-70, 70-80, >80)
+NASS_2020_all$AGEGRP2 <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 40, 55, 65, 70, 80, Inf), 
+    labels = c("0-17", "18-39", "40-54", "55-64", "65-69", "70-79", "80+"), right = FALSE)
+NASS_2020_all$AGEGRP2 <- as.factor(NASS_2020_all$AGEGRP2)
 gc()
 
 # Write NASS_2020_all to a CSV file in the working directory
