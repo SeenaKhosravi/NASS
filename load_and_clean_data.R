@@ -10,7 +10,7 @@
 
 # List of required packages
 required_packages <- 
-  c("data.table", "lme4", "ggplot2", "sjPlot", "dplyr", "haven")
+  c("data.table", "lme4", "ggplot2", "sjPlot", "dplyr", "haven", "ComplexHeatmap")
 
 # Function to check and install missing packages
 install_if_missing <- function(packages) {
