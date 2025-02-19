@@ -81,14 +81,21 @@ NASS_2020_all$DISCWT <- as.numeric(NASS_2020_all$DISCWT)
 cols_to_factor <- setdiff(names(NASS_2020_all), c("AGE", "DISCWT", "TOTCHG","TOTAL_AS_ENCOUNTERS"))
 NASS_2020_all[, (cols_to_factor) := lapply(.SD, as.factor), .SDcols = cols_to_factor]
 rm(cols_to_factor)
-NASS_2020_all$AGEGRP <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 40, 55, 65, 70, 80, Inf), labels = c("0-17", "18-39", "40-54", "55-64", "65-69", "70-79", "80+"), right = FALSE)
+NASS_2020_all$AGEGRP <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 40, 55, 65, 70, 80, Inf), 
+    labels = c("0-17", "18-39", "40-54", "55-64", "65-69", "70-79", "80+"), right = FALSE)
 NASS_2020_all$AGEGRP <- as.factor(NASS_2020_all$AGEGRP)
 gc()
 
-# Create subset data.table of NASS_2020_all for analysis
+# Create an AGE, TOTCHG and CPTCCS1 subset data.table of NASS_2020_all for analysis
+# Remove unnecessary CPT and CCSR columns
 subset_65_50_NASS_2020 <- NASS_2020_all[
-  TOTCHG > 1000 & TOTCHG < 1000000 & AGE > 64 & CPTCCS1 %in% names(sort(table(CPTCCS1), decreasing = TRUE)[1:50]),
-  .SD, .SDcols = 1:132]
+  TOTCHG > 1000 
+  & TOTCHG < 1000000 
+  & AGE > 64 
+  & CPTCCS1 %in% names(sort(table(CPTCCS1), decreasing = TRUE)[1:50]),  #### Change 50 to whichever top, max 79
+  .SD, .SDcols = c(1:27, 57, 87:132)]  
+colnames(subset_65_50_NASS_2020)
+dim(subset_65_50_NASS_2020)
 gc()
 
 # Fit the linear mixed models
@@ -100,60 +107,25 @@ model <-
 summary(model)
 
 # Plot the fixed effects estimates with confidence intervals
-plot_model(model, type = "est", show.values = TRUE, value.offset = .3, ci.lvl = 0.95)
+plot_model(model, type = "est", ci.lvl = 0.95, sort.est = TRUE)
 
 # Plot random effects with confidence intervals
-plot_model(model, type = "re", show.values = TRUE, ci.lvl = 0.95)
+plot_model(model, type = "re", ci.lvl = 0.95, sort.est = TRUE)
 
-# Create diagnostic plots
-# 1. Residuals vs Fitted with confidence interval
-ggplot(model, aes(.fitted, .resid)) +
-  geom_point() +
-  geom_smooth(method = "loess", se = TRUE) +
-  theme_minimal() +
-  labs(title = "Residuals vs Fitted")
+# Generate diagnostic plots for the linear mixed model
+par(mfrow = c(2, 2))  # Set up a 2x2 plotting area
 
-# 2. Q-Q plot for residuals (Q-Q plots do not typically include confidence intervals)
-ggplot(model, aes(sample = .resid)) +
-  stat_qq() +
-  stat_qq_line() +
-  theme_minimal() +
-  labs(title = "Q-Q Plot of Residuals")
+# Residuals vs Fitted
+plot(model, which = 1, main = "Residuals vs Fitted")
 
-# Summary table of customer demographics
-demographics <- NASS_2020_all %>% 
-  group_by(Customer) %>% 
-  summarise(
-    Age = mean(AGE, na.rm = TRUE),
-    Gender = unique(FEMALE),
-    Income = mean(PAY1, na.rm = TRUE),
-    Region = unique(HOSP_REGION)
-  )
+# Normal Q-Q plot
+qqnorm(resid(model), main = "Normal Q-Q")
+qqline(resid(model))
 
-# Print the demographics table
-print(demographics)
+# Scale-Location plot
+plot(model, which = 3, main = "Scale-Location")
 
-# Plotting distributions
-# 1. Distribution of Sales
-ggplot(NASS_2020_all, aes(Sales)) +
-  geom_histogram(binwidth = 10, fill = "blue", color = "black") +
-  theme_minimal() +
-  labs(title = "Distribution of Sales", x = "Sales", y = "Frequency")
+# Residuals vs Leverage
+plot(model, which = 5, main = "Residuals vs Leverage")
 
-# 2. Distribution of Customer Ages
-ggplot(NASS_2020_all, aes(Age)) +
-  geom_histogram(binwidth = 5, fill = "green", color = "black") +
-  theme_minimal() +
-  labs(title = "Distribution of Customer Ages", x = "Age", y = "Frequency")
-
-# 3. Distribution of Income
-ggplot(NASS_2020_all, aes(Income)) +
-  geom_histogram(binwidth = 5000, fill = "purple", color = "black") +
-  theme_minimal() +
-  labs(title = "Distribution of Income", x = "Income", y = "Frequency")
-
-# 4. Sales by Region
-ggplot(NASS_2020_all, aes(Region, Sales)) +
-  geom_boxplot(fill = "orange") +
-  theme_minimal() +
-  labs(title = "Sales by Region", x = "Region", y = "Sales")
+par(mfrow = c(1, 1))  # Reset to default plotting area
