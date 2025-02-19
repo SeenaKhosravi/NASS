@@ -1,10 +1,11 @@
+###load_and_clean_data.R
+
 ### HCUP NASS 2020 Data Analysis
 ### Author: SgtKlinger
 ### Date: 2025-02-10
 
 ### Description: This script loads and cleans the
-# HCUP NASS 2020 data, performs a linear mixed model
-# analysis, and generates various plots and summary statistics.
+### HCUP NASS 2020 data and outputs the combined file
 
 
 # List of required packages
@@ -86,46 +87,23 @@ NASS_2020_all$AGEGRP <- cut(NASS_2020_all$AGE, breaks = c(0, 18, 40, 55, 65, 70,
 NASS_2020_all$AGEGRP <- as.factor(NASS_2020_all$AGEGRP)
 gc()
 
-# Create an AGE, TOTCHG and CPTCCS1 subset data.table of NASS_2020_all for analysis
+# Write NASS_2020_all to a CSV file in the working directory
+fwrite(NASS_2020_all, file.path(getwd(), "NASS_2020_all.csv"))
+
+#####CREATE SUBSET DATA FOR ANALYSIS#####
+
+# Create an AGE, TOTCHG and CPTCCS1 subset data.table of NASS_2020_all
 # Remove unnecessary CPT and CCSR columns
-subset_65_50_NASS_2020 <- NASS_2020_all[
+NASS_2020_subset65 <- NASS_2020_all[
   TOTCHG > 1000 
   & TOTCHG < 1000000 
   & AGE > 64 
   & CPTCCS1 %in% names(sort(table(CPTCCS1), decreasing = TRUE)[1:50]),  #### Change 50 to whichever top, max 79
   .SD, .SDcols = c(1:27, 57, 87:132)]  
-colnames(subset_65_50_NASS_2020)
-dim(subset_65_50_NASS_2020)
+colnames(NASS_2020_subset65)
+dim(NASS_2020_subset65)
 gc()
 
-# Fit the linear mixed models
-model <- 
-  lmer(TOTCHG ~ CPTCCS1 + (1 | HOSP_NASS), 
-    data = subset_65_50_NASS_2020, weights = DISCWT)
-
-# Print the summary of the model
-summary(model)
-
-# Plot the fixed effects estimates with confidence intervals
-plot_model(model, type = "est", ci.lvl = 0.95, sort.est = TRUE)
-
-# Plot random effects with confidence intervals
-plot_model(model, type = "re", ci.lvl = 0.95, sort.est = TRUE)
-
-# Generate diagnostic plots for the linear mixed model
-par(mfrow = c(2, 2))  # Set up a 2x2 plotting area
-
-# Residuals vs Fitted
-plot(model, which = 1, main = "Residuals vs Fitted")
-
-# Normal Q-Q plot
-qqnorm(resid(model), main = "Normal Q-Q")
-qqline(resid(model))
-
-# Scale-Location plot
-plot(model, which = 3, main = "Scale-Location")
-
-# Residuals vs Leverage
-plot(model, which = 5, main = "Residuals vs Leverage")
-
-par(mfrow = c(1, 1))  # Reset to default plotting area
+# Write NASS_2020_subset65 to a CSV file in the working directory
+fwrite(NASS_2020_subset65, file.path(getwd(), "NASS_2020_subset65.csv"))
+gc()
