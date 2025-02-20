@@ -29,6 +29,12 @@
 ### Description: This script creates a subset of the HCUP NASS 2020 data
 ### for Total Knee Arthroplasty (TKA) analysis and prepares for binomial prediction models.
 
+### STATUS: IN PROGRESS, NOT TESTED
+### NOTE: This script is designed to be run in RStudio
+### and assumes the working directory is set to the location of the data files,
+### and the NASS_2020_all.csv file is present in the working directory
+### after running load_and_clean_data.R.
+
 # Load required packages
 required_packages <- c("data.table", "dplyr", "lme4", "randomForest", "caret", "ROSE", "e1071", "parallel", "pROC")
 
