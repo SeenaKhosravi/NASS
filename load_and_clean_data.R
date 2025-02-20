@@ -1,6 +1,26 @@
 ###load_and_clean_data.R
 
-###STATUS: COMPLETE, NO RUN ERRORS
+### MIT License
+### 
+### Copyright (c) 2025 SgtKlinger
+### 
+### Permission is hereby granted, free of charge, to any person obtaining a copy
+### of this software and associated documentation files (the "Software"), to deal
+### in the Software without restriction, including without limitation the rights
+### to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+### copies of the Software, and to permit persons to whom the Software is
+### furnished to do so, subject to the following conditions:
+### 
+### The above copyright notice and this permission notice shall be included in all
+### copies or substantial portions of the Software.
+### 
+### THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+### IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+### FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+### AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+### LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+### OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+### SOFTWARE.
 
 ### HCUP NASS 2020 Data Analysis
 ### Author: SgtKlinger
@@ -9,9 +29,13 @@
 ### Description: This script loads and cleans the
 ### HCUP NASS 2020 data and outputs the combined file
 
+### STATUS: COMPLETE, TESTED, AND WORKING
+### NOTE: This script is designed to be run in RStudio
+### and assumes the working directory is set to the location of the data files.
+
 # List of required packages
 required_packages <- 
-  c("data.table", "lme4", "ggplot2", "sjPlot", "dplyr", "haven", "ComplexHeatmap")
+  c("data.table", "lme4", "ggplot2", "sjPlot", "dplyr")
 
 # Function to check and install missing packages
 install_if_missing <- function(packages) {
