@@ -74,7 +74,7 @@ weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights
 print(weighted_test)
 
 # Load the US Census data from the CSV file
-census_data <- fread("getwd()/state-raceprevalence-2020.csv")
+census_data <- fread("getwd()/state-raceprevalence-2020.csv", , col_types = cols(.default = "c"), locale = locale(encoding = "UTF-8")
 
 # List of states included in NASS_2020_all
 states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District of Columbia", "Florida", "Georgia", "Hawaii", "Iowa",
@@ -84,3 +84,16 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
 
 # Filter the census data to include only the relevant states
 filtered_census_data <- census_data %>% filter(State %in% states_in_nass)
+
+# Reshape the data for better analysis
+reshaped_census_data <- data %>%
+  pivot_longer(
+    cols = -State,
+    names_to = c("Age_Group", "Racial_Ethnic_Group", "Metric"),
+    names_sep = " - ",
+    values_to = "Value"
+  ) %>%
+  pivot_wider(
+    names_from = Metric,
+    values_from = Value
+  )
