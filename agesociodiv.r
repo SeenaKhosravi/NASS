@@ -105,39 +105,13 @@ reshaped_census_data <- data %>%
     values_from = Value
   )
 
-
-############################################################################NOT TESTED BELOW
 # Convert necessary columns to numeric
 reshaped_census_data <- reshaped_census_data %>%
   mutate(
-    Number = parse_number(Number),
-    Percent = parse_number(Percent)
+    Number = as.numeric(gsub(",", "", iconv(Number, from = "UTF-8", to = "ASCII//TRANSLIT", sub = ""))),
+    Percent = as.numeric(gsub(",", "", iconv(Percent, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")))
   )
 
-# Save the reshaped data to a new CSV file
-write_csv(reshaped_census_data, "c:/Users/laure/Downloads/reshaped_state_raceprevalence_2020.csv")
+############################################################################NOT TESTED BELOW
 
-# Example analysis: Calculate the proportion of White Americans in the whole country
-total_white <- reshaped_census_data %>%
-  filter(Racial_Ethnic_Group == "White alone, not Hispanic or Latino") %>%
-  summarise(Total_Number = sum(Number, na.rm = TRUE))
 
-total_population <- reshaped_census_data %>%
-  group_by(State) %>%
-  summarise(State_Population = sum(Number, na.rm = TRUE)) %>%
-  summarise(Total_Population = sum(State_Population, na.rm = TRUE))
-
-proportion_white <- total_white$Total_Number / total_population$Total_Population
-print(proportion_white)
-
-# Example analysis: Calculate the proportion of White Americans in a specific state and age group
-state_age_group_white <- reshaped_census_data %>%
-  filter(State == "California", Age_Group == "All ages", Racial_Ethnic_Group == "White alone, not Hispanic or Latino") %>%
-  summarise(Total_Number = sum(Number, na.rm = TRUE))
-
-state_age_group_population <- reshaped_census_data %>%
-  filter(State == "California", Age_Group == "All ages") %>%
-  summarise(State_Age_Group_Population = sum(Number, na.rm = TRUE))
-
-proportion_state_age_group_white <- state_age_group_white$Total_Number / state_age_group_population$State_Age_Group_Population
-print(proportion_state_age_group_white)
