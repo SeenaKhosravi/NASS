@@ -59,16 +59,28 @@ unadjusted_proportion_white <- mean(NASS_2020_all$WHITE)
 print(paste("Unadjusted proportion of WHITE:", unadjusted_proportion_white))
 
 # Calculate the weighted proportion of WHITE using DISCWT
-weighted_proportion_white <- svymean(~WHITE, design = svydesign(ids = ~1, weights = ~DISCWT, data = NASS_2020_all))
+weighted_proportion_white <- svymean(~WHITE, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all))
 print(paste("Weighted proportion of WHITE:", coef(weighted_proportion_white)))
 
 # Reference value for White Only proportion for the whole US from the 2020 US Census
-us_census_white_proportion <- 0.76  # Example value, replace with actual value
+us_census_white_proportion <- 0.601  # Actual value from the 2020 US Census
 
 # Perform a simple statistical test for the unadjusted proportion
 unadjusted_test <- prop.test(sum(NASS_2020_all$WHITE), nrow(NASS_2020_all), p = us_census_white_proportion)
 print(unadjusted_test)
 
 # Perform a simple statistical test for the weighted proportion
-weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~1, weights = ~DISCWT, data = NASS_2020_all), mu = us_census_white_proportion)
+weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all), mu = us_census_white_proportion)
 print(weighted_test)
+
+# Load the US Census data from the CSV file
+census_data <- fread("getwd()/state-raceprevalence-2020.csv")
+
+# List of states included in NASS_2020_all
+states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District of Columbia", "Florida", "Georgia", "Hawaii", "Iowa",
+                    "Illinois", "Indiana", "Kansas", "Kentucky", "Maryland", "Maine", "Michigan", "Minnesota", "Missouri", "North Carolina",
+                    "North Dakota", "Nebraska", "New Jersey", "Nevada", "New York", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "South Carolina",
+                    "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Wisconsin")
+
+# Filter the census data to include only the relevant states
+filtered_census_data <- census_data %>% filter(State %in% states_in_nass)
