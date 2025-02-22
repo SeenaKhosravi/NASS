@@ -55,13 +55,13 @@ load_libraries(required_packages)
 rm(required_packages, install_if_missing, load_libraries)
 
 # Load the cleaned NASS 2020 data
-NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"), select = c(1:27, 57, 87:132))
+NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"), select = c(1:27, 57:132))
 
-# Create a subset for Total Knee Arthroplasty (TKA) patients
-TKA_subset <- NASS_2020_all[CPTCCS1 == "81.54" & !is.na(TOTCHG) & !is.na(AGE)]
+# Filter for Total Knee Arthroplasty (TKA) cases
+TKA_subset <- NASS_2020_all[PAY1 = is not NA & CPTCCS1 == "152"]
 
-# Remove rows with missing values
-TKA_subset <- na.omit(TKA_subset)
+#calculate the percentage of TKA cases included in subset
+TKA_retained <- nrow(TKA_subset) / nrow(NASS_2020_all[CPTCCS1 == "152"])
 
 # Write TKA_subset to a CSV file in the working directory
 fwrite(TKA_subset, file.path(getwd(), "TKA_subset.csv"))
