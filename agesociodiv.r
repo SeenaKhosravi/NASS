@@ -26,11 +26,13 @@
 ### Author: SgtKlinger
 ### Date: 2025-02-10
 
+### STATUS: Partially Tested
+
 ### Description: This script analyzes the age and sociodemographic diversity
 ### of the HCUP NASS 2020 data.
 
 # Load required packages
-required_packages <- c("data.table", "dplyr", "survey")
+required_packages <- c("data.table", "dplyr", "survey", "tidyverse")
 
 # Function to check and install missing packages
 install_if_missing <- function(packages) {
@@ -50,6 +52,10 @@ rm(required_packages, install_if_missing, load_libraries)
 
 # Load the cleaned NASS 2020 data
 NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"))
+
+########################################
+# Stage 1 Analysis
+########################################
 
 # Create a dummy variable WHITE which is 1 when RACE = 1, and 0 otherwise
 NASS_2020_all[, WHITE := ifelse(RACE == 1, 1, 0)]
@@ -73,8 +79,9 @@ print(unadjusted_test)
 weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all), mu = us_census_white_proportion)
 print(weighted_test)
 
-# Load the US Census data from the CSV file
-census_data <- fread("getwd()/state-raceprevalence-2020.csv", , col_types = cols(.default = "c"), locale = locale(encoding = "UTF-8")
+##########################################
+# Stage 2 Analysis
+##########################################
 
 # List of states included in NASS_2020_all
 states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District of Columbia", "Florida", "Georgia", "Hawaii", "Iowa",
@@ -82,8 +89,8 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
                     "North Dakota", "Nebraska", "New Jersey", "Nevada", "New York", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "South Carolina",
                     "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Wisconsin")
 
-# Filter the census data to include only the relevant states
-filtered_census_data <- census_data %>% filter(State %in% states_in_nass)
+# Load the Census CSV data with specified encoding from working directory
+data <- read_csv(file.path(getwd(), "state-raceprevalence-2020.csv"), col_types = cols(.default = "c"), locale = locale(encoding = "UTF-8"))
 
 # Reshape the data for better analysis
 reshaped_census_data <- data %>%
@@ -97,3 +104,40 @@ reshaped_census_data <- data %>%
     names_from = Metric,
     values_from = Value
   )
+
+
+############################################################################NOT TESTED BELOW
+# Convert necessary columns to numeric
+reshaped_census_data <- reshaped_census_data %>%
+  mutate(
+    Number = parse_number(Number),
+    Percent = parse_number(Percent)
+  )
+
+# Save the reshaped data to a new CSV file
+write_csv(reshaped_census_data, "c:/Users/laure/Downloads/reshaped_state_raceprevalence_2020.csv")
+
+# Example analysis: Calculate the proportion of White Americans in the whole country
+total_white <- reshaped_census_data %>%
+  filter(Racial_Ethnic_Group == "White alone, not Hispanic or Latino") %>%
+  summarise(Total_Number = sum(Number, na.rm = TRUE))
+
+total_population <- reshaped_census_data %>%
+  group_by(State) %>%
+  summarise(State_Population = sum(Number, na.rm = TRUE)) %>%
+  summarise(Total_Population = sum(State_Population, na.rm = TRUE))
+
+proportion_white <- total_white$Total_Number / total_population$Total_Population
+print(proportion_white)
+
+# Example analysis: Calculate the proportion of White Americans in a specific state and age group
+state_age_group_white <- reshaped_census_data %>%
+  filter(State == "California", Age_Group == "All ages", Racial_Ethnic_Group == "White alone, not Hispanic or Latino") %>%
+  summarise(Total_Number = sum(Number, na.rm = TRUE))
+
+state_age_group_population <- reshaped_census_data %>%
+  filter(State == "California", Age_Group == "All ages") %>%
+  summarise(State_Age_Group_Population = sum(Number, na.rm = TRUE))
+
+proportion_state_age_group_white <- state_age_group_white$Total_Number / state_age_group_population$State_Age_Group_Population
+print(proportion_state_age_group_white)
