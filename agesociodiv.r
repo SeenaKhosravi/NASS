@@ -38,7 +38,8 @@ YOUR_CENSUS_API_KEY <- "YOUR_CENSUS_API_KEY"  # Replace with your actual Census 
 ##########################
 
 # Load required packages
-required_packages <- c("data.table", "dplyr", "survey", "tidyverse", "tidycensus", "ggplot2", "gridExtra")
+required_packages <- c("data.table", "dplyr", "survey", "tidyverse", "tidycensus", 
+"ggplot2", "gridExtra","caret", "randomForest", "pROC", "broom", "lme4")
 
 # Function to check and install missing packages
 install_if_missing <- function(packages) {
@@ -223,7 +224,7 @@ weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights
 print(weighted_test)
 
 ########################################
-# Stage 3 Analysis
+# Stage 2 Analysis
 # Break down the NASS 2020 data by age group, and compare the proportions of white individuals
 # at each age, by gender. Show counts in NASS, and run a statistical test at each age bracket to 
 # determine if the NASS proportion of white individuals is significantly different from the Census proportion
@@ -338,3 +339,85 @@ results_table <- nass_counts %>%
 
 # Print the results table
 print(results_table)
+
+########################################
+# Stage 3
+# Create a multi-level model to predict if an encounter is white
+# nested modesl will be to compare effects of different factors
+# such as socioeconomics, geography, and clinical factors
+########################################
+
+# Select relevant features and the target variable
+features <- NASS_2020_all %>%
+  select(AGE_GROUP, FEMALE, ZIPINC_QRTL, PAY1, DISPUNIFORM, WHITE, CPTCCS1, HOSP_REGION, HOSP_LOCATION, HOSP_TEACH, HOSP_NASS, TOTAL_AS_ENCOUNTERS, PL_NCHS)
+
+# Convert categorical variables to factors
+features <- features %>%
+  mutate(
+    AGE_GROUP = as.factor(AGE_GROUP),
+    FEMALE = as.factor(FEMALE),
+    ZIPINC_QRTL = as.factor(ZIPINC_QRTL),
+    PAY1 = as.factor(PAY1),
+    DISPUNIFORM = as.factor(DISPUNIFORM),
+    CPTCCS1 = as.factor(CPTCCS1),
+    HOSP_REGION = as.factor(HOSP_REGION),
+    HOSP_LOCATION = as.factor(HOSP_LOCATION),
+    HOSP_TEACH = as.factor(HOSP_TEACH),
+    HOSP_NASS = as.factor(HOSP_NASS),
+    PL_NCHS = as.factor(PL_NCHS),
+    WHITE = as.factor(WHITE)
+  )
+
+# Split the data into training and testing sets
+set.seed(123)  # For reproducibility
+train_index <- createDataPartition(features$WHITE, p = 0.8, list = FALSE)
+train_data <- features[train_index, ]
+test_data <- features[-train_index, ]
+
+# Define models
+models <- list(
+  model1 = "WHITE ~ AGE_GROUP + (1 | HOSP_NASS)",
+  model2 = "WHITE ~ AGE_GROUP + FEMALE + (1 | HOSP_NASS)",
+  model3 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + (1 | HOSP_NASS)",
+  model4 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + (1 | HOSP_NASS)",
+  model5 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + (1 | HOSP_NASS)",
+  model6 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + (1 | HOSP_NASS)",
+  model7 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + (1 | HOSP_NASS)",
+  model8 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + (1 | HOSP_NASS)",
+  model9 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + (1 | HOSP_NASS)",
+  model10 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + PL_NCHS + (1 | HOSP_NASS) + (1 | HOSP_REGION)"
+)
+
+# Train models and generate ROC curves
+roc_curves <- list()
+for (i in seq_along(models)) {
+  model_formula <- as.formula(models[[i]])
+  model <- glmer(model_formula, data = train_data, family = binomial)
+  predictions <- predict(model, test_data, type = "response")
+  roc_curve <- roc(test_data$WHITE, predictions)
+  roc_curves[[i]] <- roc_curve
+  print(paste("Model", i, "AUC:", auc(roc_curve)))
+}
+
+# Plot ROC curves
+plot(roc_curves[[1]], main = "ROC Curves for Sequential Models", col = 1)
+for (i in 2:length(roc_curves)) {
+  plot(roc_curves[[i]], add = TRUE, col = i)
+}
+legend("bottomright", legend = paste("Model", 1:length(roc_curves)), col = 1:length(roc_curves), lwd = 2)
+
+# Select the best model (based on highest AUC)
+best_model_index <- which.max(sapply(roc_curves, auc))
+best_model_formula <- as.formula(models[[best_model_index]])
+best_model <- glmer(best_model_formula, data = train_data, family = binomial)
+
+# Print the best model summary
+summary(best_model)
+
+# Plot the relative magnitudes of the fixed effects of the best model
+fixed_effects <- fixef(best_model)
+fixed_effects_df <- data.frame(Effect = names(fixed_effects), Estimate = fixed_effects)
+ggplot(fixed_effects_df, aes(x = reorder(Effect, Estimate), y = Estimate)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Relative Magnitudes of Fixed Effects in the Best Model", x = "Effect", y = "Estimate")
