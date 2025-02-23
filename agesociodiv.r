@@ -439,33 +439,95 @@ for (model_index in seq_along(models)) {
   }
 }
 
-# Plot ROC curves for each age group
-par(mfrow = c(ceiling(length(age_groups) / 2), 2))
-for (age_group in age_groups) {
-  roc_curves <- lapply(results[[as.character(age_group)]], function(x) x$roc_curve)
-  plot(roc_curves[[1]], main = paste("ROC Curves for Age Group", age_group), col = 1)
-  for (i in 2:length(roc_curves)) {
-    plot(roc_curves[[i]], add = TRUE, col = i)
-  }
-  legend("bottomright", legend = paste("Model", 1:length(roc_curves)), col = 1:length(roc_curves), lwd = 2)
-}
+# # Plot ROC curves for each age group
+# par(mfrow = c(ceiling(length(age_groups) / 2), 2))
+# for (age_group in age_groups) {
+#   roc_curves <- lapply(results[[as.character(age_group)]], function(x) x$roc_curve)
+#   plot(roc_curves[[1]], main = paste("ROC Curves for Age Group", age_group), col = 1)
+#   for (i in 2:length(roc_curves)) {
+#     plot(roc_curves[[i]], add = TRUE, col = i)
+#   }
+#   legend("bottomright", legend = paste("Model", 1:length(roc_curves)), col = 1:length(roc_curves), lwd = 2)
+# }
 
-# Compare the most significant effect contributions of the best model by age group
-effect_contributions <- data.frame()
-for (age_group in age_groups) {
-  best_model_index <- which.max(sapply(results[[as.character(age_group)]], function(x) auc(x$roc_curve)))
-  best_model <- results[[as.character(age_group)]][[paste0("model", best_model_index)]]$model
-  fixed_effects <- fixef(best_model)
-  fixed_effects_df <- data.frame(
-    Age_Group = as.character(age_group),
-    Effect = names(fixed_effects),
-    Estimate = fixed_effects
-  )
-  effect_contributions <- rbind(effect_contributions, fixed_effects_df)
-}
+# # Compare the most significant effect contributions of the best model by age group
+# effect_contributions <- data.frame()
+# for (age_group in age_groups) {
+#   best_model_index <- which.max(sapply(results[[as.character(age_group)]], function(x) auc(x$roc_curve)))
+#   best_model <- results[[as.character(age_group)]][[paste0("model", best_model_index)]]$model
+#   fixed_effects <- fixef(best_model)
+#   fixed_effects_df <- data.frame(
+#     Age_Group = as.character(age_group),
+#     Effect = names(fixed_effects),
+#     Estimate = fixed_effects
+#   )
+#   effect_contributions <- rbind(effect_contributions, fixed_effects_df)
+# }
 
-# Plot the relative magnitudes of the fixed effects of the best model by age group
-ggplot(effect_contributions, aes(x = reorder(Effect, Estimate), y = Estimate, fill = Age_Group)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  coord_flip() +
-  labs(title = "Relative Magnitudes of Fixed Effects in the Best Model by Age Group", x = "Effect", y = "Estimate")
+# # Plot the relative magnitudes of the fixed effects of the best model by age group
+# ggplot(effect_contributions, aes(x = reorder(Effect, Estimate), y = Estimate, fill = Age_Group)) +
+#   geom_bar(stat = "identity", position = "dodge") +
+#   coord_flip() +
+#   labs(title = "Relative Magnitudes of Fixed Effects in the Best Model by Age Group", x = "Effect", y = "Estimate")
+
+
+#   # Create a summary table of AUC, sensitivity, and specificity for each model and age group
+# summary_table <- data.frame(Age_Group = character(), Model = character(), AUC = numeric(), Sensitivity = numeric(), Specificity = numeric(), stringsAsFactors = FALSE)
+
+# for (age_group in age_groups) {
+#   for (model_index in seq_along(models)) {
+#     # Extract the ROC curve object
+#     roc_curve <- results[[as.character(age_group)]][[paste0("model", model_index)]]$roc_curve
+    
+#     # Check if the ROC curve object is valid
+#     if (!is.null(roc_curve)) {
+#       auc_value <- auc(roc_curve)
+#       sensitivity <- roc_curve$sensitivities[which.max(roc_curve$sensitivities + roc_curve$specificities - 1)]
+#       specificity <- roc_curve$specificities[which.max(roc_curve$sensitivities + roc_curve$specificities - 1)]
+#       summary_table <- rbind(summary_table, data.frame(Age_Group = as.character(age_group), Model = paste0("Model", model_index), AUC = auc_value, Sensitivity = sensitivity, Specificity = specificity))
+#     }
+#   }
+# }
+
+# Sort the age groups properly
+summary_table$Age_Group <- factor(summary_table$Age_Group, levels = age_labels)
+summary_table <- summary_table[order(summary_table$Age_Group), ]
+
+# Print the summary table
+print(summary_table)
+
+# Save the summary table to a CSV file
+write.csv(summary_table, "Summary_by_Age_Group.csv", row.names = FALSE)
+
+# Create a PDF file for all diagnostic plots
+pdf("Diagnostic_Plots_by_Age_Group.pdf", width = 12, height = 8)
+
+# Plot AUC values for each model and age group
+ggplot(summary_table, aes(x = Age_Group, y = AUC, color = Model, group = Model)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "AUC by Age Group and Model", x = "Age Group", y = "AUC") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 1))
+
+# Plot Sensitivity for each model and age group
+ggplot(summary_table, aes(x = Age_Group, y = Sensitivity, color = Model, group = Model)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Sensitivity by Age Group and Model", x = "Age Group", y = "Sensitivity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 1))
+
+# Plot Specificity for each model and age group
+ggplot(summary_table, aes(x = Age_Group, y = Specificity, color = Model, group = Model)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Specificity by Age Group and Model", x = "Age Group", y = "Specificity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 1))
+
+# Close the PDF file
+dev.off()
