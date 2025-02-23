@@ -33,6 +33,10 @@
 
 YOUR_CENSUS_API_KEY <- "YOUR_CENSUS_API_KEY"  # Replace with your actual Census API key
 
+##########################
+# Setup
+##########################
+
 # Load required packages
 required_packages <- c("data.table", "dplyr", "survey", "tidyverse", "tidycensus")
 
@@ -86,21 +90,71 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
 
 # Import data for total population by state by age from the 2020 Census
 # U.S. Census Bureau, U.S. Department of Commerce. 
-# "PROFILE OF GENERAL POPULATION AND HOUSING CHARACTERISTICS." Decennial Census, 
-# DEC Demographic Profile, Table DP1, 2020
+# 2020 Decennial Census, DHC-A
 
 # Set up your Census API key
 census_api_key("YOUR_CENSUS_API_KEY", install = TRUE)
 
-# Function to get population data by state, age, and gender with an optional race/ethnic group filter
-get_population_data <- function(variables, labels, race_filter = NULL) {
-  # Extract population data by state, age, and gender from the 2020 Census DP1 file
+# Function to get population data by state, age, and gender from the 2020 Census DHC-A file
+get_population_data <- function(pop_code) {
+  variables <- paste0("T01001", "_", sprintf("%03dN", 1:49))
   population_data <- get_decennial(
     geography = "state",
     variables = variables,
     year = 2020,
-    survey = "dec",
-    summary_var = race_filter
+    pop_group = pop_code,
+    sumfile = "ddhca"
+  )
+  labels <- c(
+    "Total",
+    "Male: Total",
+    "Male: Under 5 years",
+    "Male: 5 to 9 years",
+    "Male: 10 to 14 years",
+    "Male: 15 to 17 years",
+    "Male: 18 and 19 years",
+    "Male: 20 years",
+    "Male: 21 years",
+    "Male: 22 to 24 years",
+    "Male: 25 to 29 years",
+    "Male: 30 to 34 years",
+    "Male: 35 to 39 years",
+    "Male: 40 to 44 years",
+    "Male: 45 to 49 years",
+    "Male: 50 to 54 years",
+    "Male: 55 to 59 years",
+    "Male: 60 and 61 years",
+    "Male: 62 to 64 years",
+    "Male: 65 and 66 years",
+    "Male: 67 to 69 years",
+    "Male: 70 to 74 years",
+    "Male: 75 to 79 years",
+    "Male: 80 to 84 years",
+    "Male: 85 years and over",
+    "Female: Total",
+    "Female: Under 5 years",
+    "Female: 5 to 9 years",
+    "Female: 10 to 14 years",
+    "Female: 15 to 17 years",
+    "Female: 18 and 19 years",
+    "Female: 20 years",
+    "Female: 21 years",
+    "Female: 22 to 24 years",
+    "Female: 25 to 29 years",
+    "Female: 30 to 34 years",
+    "Female: 35 to 39 years",
+    "Female: 40 to 44 years",
+    "Female: 45 to 49 years",
+    "Female: 50 to 54 years",
+    "Female: 55 to 59 years",
+    "Female: 60 and 61 years",
+    "Female: 62 to 64 years",
+    "Female: 65 and 66 years",
+    "Female: 67 to 69 years",
+    "Female: 70 to 74 years",
+    "Female: 75 to 79 years",
+    "Female: 80 to 84 years",
+    "Female: 85 years and over"
   )
   
   # Replace variable codes with labels
@@ -114,70 +168,8 @@ get_population_data <- function(variables, labels, race_filter = NULL) {
   return(population_data)
 }
 
-# Define variables and labels for population by age and gender
-population_variables <- c(
-  "P1_001N", "P1_003N", "P1_004N", "P1_005N", "P1_006N", "P1_007N", "P1_008N", "P1_009N", "P1_010N", "P1_011N",
-  "P1_012N", "P1_013N", "P1_014N", "P1_015N", "P1_016N", "P1_017N", "P1_018N", "P1_019N", "P1_020N",
-  "P1_021N", "P1_022N", "P1_023N", "P1_024N", "P1_025N", "P1_026N", "P1_027N", "P1_028N", "P1_029N", "P1_030N",
-  "P1_031N", "P1_032N", "P1_033N", "P1_034N", "P1_035N", "P1_036N", "P1_037N", "P1_038N", "P1_039N", "P1_040N"
-)
-population_labels <- c(
-  "P1_001N" = "Total",
-  "P1_003N" = "Under 5 years (Male)",
-  "P1_004N" = "5 to 9 years (Male)",
-  "P1_005N" = "10 to 14 years (Male)",
-  "P1_006N" = "15 to 19 years (Male)",
-  "P1_007N" = "20 to 24 years (Male)",
-  "P1_008N" = "25 to 29 years (Male)",
-  "P1_009N" = "30 to 34 years (Male)",
-  "P1_010N" = "35 to 39 years (Male)",
-  "P1_011N" = "40 to 44 years (Male)",
-  "P1_012N" = "45 to 49 years (Male)",
-  "P1_013N" = "50 to 54 years (Male)",
-  "P1_014N" = "55 to 59 years (Male)",
-  "P1_015N" = "60 to 64 years (Male)",
-  "P1_016N" = "65 to 69 years (Male)",
-  "P1_017N" = "70 to 74 years (Male)",
-  "P1_018N" = "75 to 79 years (Male)",
-  "P1_019N" = "80 to 84 years (Male)",
-  "P1_020N" = "85 years and over (Male)",
-  "P1_021N" = "Under 5 years (Female)",
-  "P1_022N" = "5 to 9 years (Female)",
-  "P1_023N" = "10 to 14 years (Female)",
-  "P1_024N" = "15 to 19 years (Female)",
-  "P1_025N" = "20 to 24 years (Female)",
-  "P1_026N" = "25 to 29 years (Female)",
-  "P1_027N" = "30 to 34 years (Female)",
-  "P1_028N" = "35 to 39 years (Female)",
-  "P1_029N" = "40 to 44 years (Female)",
-  "P1_030N" = "45 to 49 years (Female)",
-  "P1_031N" = "50 to 54 years (Female)",
-  "P1_032N" = "55 to 59 years (Female)",
-  "P1_033N" = "60 to 64 years (Female)",
-  "P1_034N" = "65 to 69 years (Female)",
-  "P1_035N" = "70 to 74 years (Female)",
-  "P1_036N" = "75 to 79 years (Female)",
-  "P1_037N" = "80 to 84 years (Female)",
-  "P1_038N" = "85 years and over (Female)"
-)
+# Get the total population data by state, age, and gender
+total_population_by_age_gender <- get_population_data("all")
 
-# Summary variables for different races and ethnicities
-# Total Population: P1_001N
-# White alone: P1_003N
-# Black or African American alone: P1_004N
-# American Indian and Alaska Native alone: P1_005N
-# Asian alone: P1_006N
-# Native Hawaiian and Other Pacific Islander alone: P1_007N
-# Some Other Race alone: P1_008N
-# Two or More Races: P1_009N
-# Hispanic or Latino: P2_002N
-# White alone, not Hispanic or Latino: P2_003N
-
-# Get total population data
-total_population_by_age_gender <- get_population_data(population_variables, population_labels)
+# Print the total population data
 print(total_population_by_age_gender)
-
-# Get White only, Not Hispanic or Latino population data
-white_population_by_age_gender <- get_population_data(population_variables, population_labels, race_filter = "P2_003N")
-print(white_population_by_age_gender)
-
