@@ -2,7 +2,7 @@
 
 ### MIT License
 ### 
-### Copyright (c) 2025 SgtKlinger
+### Copyright (c) 2025 Seena Khosravi
 ### 
 ### Permission is hereby granted, free of charge, to any person obtaining a copy
 ### of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 ### SOFTWARE.
 
 ### HCUP NASS 2020 Data Analysis
-### Author: SgtKlinger
+### Author: Seena Khosravi
 ### Date: 2025-02-10
 
 ### Description: This script loads and cleans the
@@ -31,7 +31,8 @@
 
 ### STATUS: COMPLETE, TESTED, AND WORKING
 ### NOTE: This script is designed to be run in RStudio
-### and assumes the working directory is set to the location of the data files.
+### and assumes the working directory is set to the location of the
+### raw HCUP data files and specification files
 
 # List of required packages
 required_packages <- 
