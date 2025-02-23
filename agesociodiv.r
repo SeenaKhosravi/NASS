@@ -61,7 +61,7 @@ NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"))
 
 ########################################
 # Stage 1 Analysis
-# unadjusted proportion of White individuals in the NASS 2020 data
+# Unadjusted proportion of White individuals in the NASS 2020 data
 # Reference value for White Only, (Not Hispanic or Latino) proportion for the whole US from the 2020 US Census
 ########################################
 
@@ -89,7 +89,6 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
                     "Illinois", "Indiana", "Kansas", "Kentucky", "Maryland", "Maine", "Michigan", "Minnesota", "Missouri", "North Carolina",
                     "North Dakota", "Nebraska", "New Jersey", "Nevada", "New York", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "South Carolina",
                     "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Wisconsin")
-
 
 # Import data for total population by state by age from the 2020 Census
 # U.S. Census Bureau, U.S. Department of Commerce. 
@@ -184,13 +183,13 @@ get_population_data <- function(variables, labels) {
   return(population_data)
 }
 
-# make total all vars for query 
+# Make total all vars for query 
 population_info <- get_population_variables("P12")
 
 # Get the total population data by state, age, and gender
 total_population_by_age_gender <- get_population_data(population_info$variables, population_info$labels)
 
-# make total white alone vars for query
+# Make total white alone vars for query
 population_info_w <- get_population_variables("P12I")
 
 # Get the total population data by state, age, and gender
