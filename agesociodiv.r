@@ -23,7 +23,7 @@
 ### SOFTWARE.
 
 ### HCUP NASS 2020 Data Analysis - Age and Sociodemographic Diversity
-### Author: SgtKlinger
+### Author: Seena Khosravi
 ### Date: 2025-02-10
 
 ### STATUS: Partially Tested
@@ -61,6 +61,8 @@ NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"))
 
 ########################################
 # Stage 1 Analysis
+# unadjusted proportion of White individuals in the NASS 2020 data
+# Reference value for White Only, (Not Hispanic or Latino) proportion for the whole US from the 2020 US Census
 ########################################
 
 # Create a dummy variable WHITE which is 1 when RACE = 1, and 0 otherwise
@@ -78,7 +80,8 @@ unadjusted_test <- prop.test(sum(NASS_2020_all$WHITE), nrow(NASS_2020_all), p = 
 print(unadjusted_test)
 
 ##########################################
-# Stage 2 Analysis
+# Collect and Prepare Census Data
+# for later analysis
 ##########################################
 
 # List of states included in NASS_2020_all
@@ -95,16 +98,14 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
 # Set up your Census API key
 census_api_key("YOUR_CENSUS_API_KEY", install = TRUE)
 
-# Function to get population data by state, age, and gender from the 2020 Census DHC-A file
-get_population_data <- function(pop_code) {
-  variables <- paste0("T01001", "_", sprintf("%03dN", 1:49))
-  population_data <- get_decennial(
-    geography = "state",
-    variables = variables,
-    year = 2020,
-    pop_group = pop_code,
-    sumfile = "ddhca"
-  )
+# Define a function to construct population variables and labels based on the desired base variable
+# Base variable P12 for total, P12I for white alone, not Hispanic or Latino
+# See https://api.census.gov/data/2020/dec/dhc/groups.html for available groups
+
+# Define a function to construct population variables and labels based on the desired base variable
+get_population_variables <- function(base_variable) {
+  variables <- paste0(base_variable, "_", sprintf("%03dN", 1:49))
+  
   labels <- c(
     "Total",
     "Male: Total",
@@ -157,9 +158,24 @@ get_population_data <- function(pop_code) {
     "Female: 85 years and over"
   )
   
+  names(labels) <- variables
+  labels <- as.character(labels)
+  
+  return(list(variables = variables, labels = labels))
+}
+
+# Function to get population data by state, age, and gender from the 2020 Census DHC file
+get_population_data <- function(variables, labels) {
+  population_data <- get_decennial(
+    geography = "state",
+    variables = variables,
+    year = 2020,
+    sumfile = "dhc"
+  )
+  
   # Replace variable codes with labels
   population_data <- population_data %>%
-    mutate(variable = recode(variable, !!!labels))
+    mutate(variable = recode(variable, !!!setNames(labels, variables)))
   
   # Reshape the data for better analysis
   population_data <- population_data %>%
@@ -168,8 +184,44 @@ get_population_data <- function(pop_code) {
   return(population_data)
 }
 
-# Get the total population data by state, age, and gender
-total_population_by_age_gender <- get_population_data("all")
+# make total all vars for query 
+population_info <- get_population_variables("P12")
 
-# Print the total population data
-print(total_population_by_age_gender)
+# Get the total population data by state, age, and gender
+total_population_by_age_gender <- get_population_data(population_info$variables, population_info$labels)
+
+# make total white alone vars for query
+population_info_w <- get_population_variables("P12I")
+
+# Get the total population data by state, age, and gender
+total_population_by_age_gender_white <- get_population_data(population_info_w$variables, population_info_w$labels)
+
+########################################
+# Stage 2 Analysis
+# Weighted proportion of White individuals in the NASS 2020 data set
+# Reference value for White Only, (Not Hispanic or Latino) proportion for 
+# only NASS included states from the 2020 US Census
+########################################
+
+# Filter the census data for the states included in NASS
+filtered_total_population <- total_population_by_age_gender %>%
+  filter(NAME %in% states_in_nass)
+
+filtered_white_population <- total_population_by_age_gender_white %>%
+  filter(NAME %in% states_in_nass)
+
+# Calculate the total population and the total white population for these states
+total_population_nass_states <- sum(filtered_total_population$Total, na.rm = TRUE)
+total_white_population_nass_states <- sum(filtered_white_population$Total, na.rm = TRUE)
+
+# Calculate the true proportion of white individuals for these states
+true_proportion_white_nass_states <- total_white_population_nass_states / total_population_nass_states
+print(paste("True proportion of WHITE in NASS states:", true_proportion_white_nass_states))
+
+# Calculate the weighted proportion of WHITE in NASS_2020_ALL using DISCWT
+weighted_proportion_white <- svymean(~WHITE, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all))
+print(paste("Weighted proportion of WHITE in NASS 2020:", coef(weighted_proportion_white)))
+
+# Perform a simple statistical test for the weighted proportion
+weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all), mu = true_proportion_white_nass_states)
+print(weighted_test)
