@@ -342,14 +342,10 @@ print(results_table)
 
 ########################################
 # Stage 3
-# Create a multi-level model to predict if an encounter is white
+# Create multi-level models to predict if a nASS encounter is white
 # nested modesl will be to compare effects of different factors
-# such as socioeconomics, geography, and clinical factors
+# such as socioeconomics, geography, and clinical factors. Models will be built by AGE_GROUP
 ########################################
-
-# Select relevant features and the target variable
-features <- NASS_2020_all %>%
-  select(AGE_GROUP, FEMALE, ZIPINC_QRTL, PAY1, DISPUNIFORM, WHITE, CPTCCS1, HOSP_REGION, HOSP_LOCATION, HOSP_TEACH, HOSP_NASS, TOTAL_AS_ENCOUNTERS, PL_NCHS)
 
 # Convert categorical variables to factors
 features <- features %>%
@@ -368,56 +364,108 @@ features <- features %>%
     WHITE = as.factor(WHITE)
   )
 
-# Split the data into training and testing sets
-set.seed(123)  # For reproducibility
-train_index <- createDataPartition(features$WHITE, p = 0.8, list = FALSE)
-train_data <- features[train_index, ]
-test_data <- features[-train_index, ]
-
 # Define models
 models <- list(
-  model1 = "WHITE ~ AGE_GROUP + (1 | HOSP_NASS)",
-  model2 = "WHITE ~ AGE_GROUP + FEMALE + (1 | HOSP_NASS)",
-  model3 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + (1 | HOSP_NASS)",
-  model4 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + (1 | HOSP_NASS)",
-  model5 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + (1 | HOSP_NASS)",
-  model6 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + (1 | HOSP_NASS)",
-  model7 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + (1 | HOSP_NASS)",
-  model8 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + (1 | HOSP_NASS)",
-  model9 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + (1 | HOSP_NASS)",
-  model10 = "WHITE ~ AGE_GROUP + FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + PL_NCHS + (1 | HOSP_NASS) + (1 | HOSP_REGION)"
+  model1 = "WHITE ~ FEMALE + (1 | HOSP_NASS)",
+  model2 = "WHITE ~ FEMALE + ZIPINC_QRTL + (1 | HOSP_NASS)",
+  model3 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + (1 | HOSP_NASS)",
+  model4 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + (1 | HOSP_NASS)",
+  model5 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + (1 | HOSP_NASS)",
+  model6 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + (1 | HOSP_NASS)",
+  model7 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + (1 | HOSP_NASS)",
+  model8 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + (1 | HOSP_NASS)",
+  model9 = "WHITE ~ FEMALE + ZIPINC_QRTL + PAY1 + DISPUNIFORM + CPTCCS1 + HOSP_LOCATION + HOSP_TEACH + TOTAL_AS_ENCOUNTERS + PL_NCHS + (1 | HOSP_NASS) + (1 | HOSP_REGION)"
 )
 
-# Train models and generate ROC curves
-roc_curves <- list()
-for (i in seq_along(models)) {
-  model_formula <- as.formula(models[[i]])
-  model <- glmer(model_formula, data = train_data, family = binomial)
-  predictions <- predict(model, test_data, type = "response")
-  roc_curve <- roc(test_data$WHITE, predictions)
-  roc_curves[[i]] <- roc_curve
-  print(paste("Model", i, "AUC:", auc(roc_curve)))
+# Split the data by AGE_GROUP
+age_groups <- unique(features$AGE_GROUP)
+results <- list()
+
+# Function to save intermediate results
+save_results <- function(results, filename) {
+  saveRDS(results, file = filename)
 }
 
-# Plot ROC curves
-plot(roc_curves[[1]], main = "ROC Curves for Sequential Models", col = 1)
-for (i in 2:length(roc_curves)) {
-  plot(roc_curves[[i]], add = TRUE, col = i)
+# Iterate over models
+for (model_index in seq_along(models)) {
+  cat("Processing model:", model_index, "\n")
+  
+  # Iterate over age groups
+  for (age_group in age_groups) {
+    cat("Processing age group:", age_group, "\n")
+    
+    # Filter data for the current age group
+    age_group_data <- features %>% filter(AGE_GROUP == age_group)
+    
+    # Split the data into training and testing sets
+    set.seed(123)  # For reproducibility
+    train_index <- createDataPartition(age_group_data$WHITE, p = 0.8, list = FALSE)
+    train_data <- age_group_data[train_index, ]
+    test_data <- age_group_data[-train_index, ]
+    
+    # Ensure levels of categorical variables in test data match those in training data
+    for (col in names(train_data)) {
+      if (is.factor(train_data[[col]])) {
+        levels(test_data[[col]]) <- levels(train_data[[col]])
+      }
+    }
+    
+    # Define the current model formula
+    model_formula <- as.formula(models[[model_index]])
+    
+    # Train the model
+    model <- glmer(model_formula, data = train_data, family = binomial)
+    
+    # Make predictions on the test data
+    predictions <- predict(model, test_data, type = "response", allow.new.levels = TRUE)
+    
+    # Generate ROC curve
+    roc_curve <- roc(test_data$WHITE, predictions)
+    
+    # Store results for the current age group and model
+    if (!is.list(results[[as.character(age_group)]])) {
+      results[[as.character(age_group)]] <- list()
+    }
+    results[[as.character(age_group)]][[paste0("model", model_index)]] <- list(
+      roc_curve = roc_curve,
+      model = model
+    )
+    
+    # Save intermediate results
+    save_results(results, "intermediate_results.rds")
+    
+    # Print AUC
+    print(paste("Age Group:", age_group, "Model", model_index, "AUC:", auc(roc_curve)))
+  }
 }
-legend("bottomright", legend = paste("Model", 1:length(roc_curves)), col = 1:length(roc_curves), lwd = 2)
 
-# Select the best model (based on highest AUC)
-best_model_index <- which.max(sapply(roc_curves, auc))
-best_model_formula <- as.formula(models[[best_model_index]])
-best_model <- glmer(best_model_formula, data = train_data, family = binomial)
+# Plot ROC curves for each age group
+par(mfrow = c(ceiling(length(age_groups) / 2), 2))
+for (age_group in age_groups) {
+  roc_curves <- lapply(results[[as.character(age_group)]], function(x) x$roc_curve)
+  plot(roc_curves[[1]], main = paste("ROC Curves for Age Group", age_group), col = 1)
+  for (i in 2:length(roc_curves)) {
+    plot(roc_curves[[i]], add = TRUE, col = i)
+  }
+  legend("bottomright", legend = paste("Model", 1:length(roc_curves)), col = 1:length(roc_curves), lwd = 2)
+}
 
-# Print the best model summary
-summary(best_model)
+# Compare the most significant effect contributions of the best model by age group
+effect_contributions <- data.frame()
+for (age_group in age_groups) {
+  best_model_index <- which.max(sapply(results[[as.character(age_group)]], function(x) auc(x$roc_curve)))
+  best_model <- results[[as.character(age_group)]][[paste0("model", best_model_index)]]$model
+  fixed_effects <- fixef(best_model)
+  fixed_effects_df <- data.frame(
+    Age_Group = as.character(age_group),
+    Effect = names(fixed_effects),
+    Estimate = fixed_effects
+  )
+  effect_contributions <- rbind(effect_contributions, fixed_effects_df)
+}
 
-# Plot the relative magnitudes of the fixed effects of the best model
-fixed_effects <- fixef(best_model)
-fixed_effects_df <- data.frame(Effect = names(fixed_effects), Estimate = fixed_effects)
-ggplot(fixed_effects_df, aes(x = reorder(Effect, Estimate), y = Estimate)) +
-  geom_bar(stat = "identity") +
+# Plot the relative magnitudes of the fixed effects of the best model by age group
+ggplot(effect_contributions, aes(x = reorder(Effect, Estimate), y = Estimate, fill = Age_Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
   coord_flip() +
-  labs(title = "Relative Magnitudes of Fixed Effects in the Best Model", x = "Effect", y = "Estimate")
+  labs(title = "Relative Magnitudes of Fixed Effects in the Best Model by Age Group", x = "Effect", y = "Estimate")
