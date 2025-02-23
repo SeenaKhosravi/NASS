@@ -38,7 +38,7 @@ YOUR_CENSUS_API_KEY <- "YOUR_CENSUS_API_KEY"  # Replace with your actual Census 
 ##########################
 
 # Load required packages
-required_packages <- c("data.table", "dplyr", "survey", "tidyverse", "tidycensus")
+required_packages <- c("data.table", "dplyr", "survey", "tidyverse", "tidycensus", "ggplot2", "gridExtra")
 
 # Function to check and install missing packages
 install_if_missing <- function(packages) {
@@ -59,30 +59,8 @@ rm(required_packages, install_if_missing, load_libraries)
 # Load the cleaned NASS 2020 data
 NASS_2020_all <- fread(file.path(getwd(), "NASS_2020_all.csv"))
 
-########################################
-# Stage 1 Analysis
-# Unadjusted proportion of White individuals in the NASS 2020 data
-# Reference value for White Only, (Not Hispanic or Latino) proportion for the whole US from the 2020 US Census
-########################################
-
-# Create a dummy variable WHITE which is 1 when RACE = 1, and 0 otherwise
-NASS_2020_all[, WHITE := ifelse(RACE == 1, 1, 0)]
-
-# Calculate the unadjusted proportion of WHITE
-unadjusted_proportion_white <- mean(NASS_2020_all$WHITE)
-print(paste("Unadjusted proportion of WHITE:", unadjusted_proportion_white))
-
-# Reference value for White Only proportion for the whole US from the 2020 US Census
-us_census_white_proportion <- 0.601  # Actual value from the 2020 US Census
-
-# Perform a simple statistical test for the unadjusted proportion
-unadjusted_test <- prop.test(sum(NASS_2020_all$WHITE), nrow(NASS_2020_all), p = us_census_white_proportion)
-print(unadjusted_test)
-
-##########################################
-# Collect and Prepare Census Data
-# for later analysis
-##########################################
+# Set up your Census API key
+census_api_key("YOUR_CENSUS_API_KEY", install = TRUE)
 
 # List of states included in NASS_2020_all
 states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District of Columbia", "Florida", "Georgia", "Hawaii", "Iowa",
@@ -93,9 +71,6 @@ states_in_nass <- c("Alaska", "California", "Colorado", "Connecticut", "District
 # Import data for total population by state by age from the 2020 Census
 # U.S. Census Bureau, U.S. Department of Commerce. 
 # 2020 Decennial Census, DHC-A
-
-# Set up your Census API key
-census_api_key("YOUR_CENSUS_API_KEY", install = TRUE)
 
 # Define a function to construct population variables and labels based on the desired base variable
 # Base variable P12 for total, P12I for white alone, not Hispanic or Latino
@@ -173,11 +148,11 @@ get_population_data <- function(variables, labels) {
   )
   
   # Replace variable codes with labels
-  population_data <- population_data %>%
+  population_data <- population_data %>% 
     mutate(variable = recode(variable, !!!setNames(labels, variables)))
   
   # Reshape the data for better analysis
-  population_data <- population_data %>%
+  population_data <- population_data %>% 
     pivot_wider(names_from = variable, values_from = value)
   
   return(population_data)
@@ -196,17 +171,39 @@ population_info_w <- get_population_variables("P12I")
 total_population_by_age_gender_white <- get_population_data(population_info_w$variables, population_info_w$labels)
 
 ########################################
-# Stage 2 Analysis
+# Stage 1a 
+# Unadjusted proportion of White individuals in the NASS 2020 data
+# Reference value for White Only, (Not Hispanic or Latino) proportion for the whole US from the 2020 US Census
+########################################
+
+# Create a dummy variable WHITE which is 1 when RACE = 1, and 0 otherwise
+NASS_2020_all[, WHITE := ifelse(RACE == 1, 1, 0)]
+
+# Calculate the unadjusted proportion of WHITE
+unadjusted_proportion_white <- mean(NASS_2020_all$WHITE)
+print(paste("Unadjusted proportion of WHITE:", unadjusted_proportion_white))
+
+# Reference value for White Only proportion for the whole US from the 2020 US Census
+us_census_white_proportion <- sum(total_population_by_age_gender_white$Total) / sum(total_population_by_age_gender$Total)
+print(paste("US Census White Only proportion:", us_census_white_proportion))
+
+# Perform a simple statistical test for the unadjusted proportion
+unadjusted_test <- prop.test(sum(NASS_2020_all$WHITE), nrow(NASS_2020_all), p = us_census_white_proportion)
+print(unadjusted_test)
+
+
+########################################
+# Stage 1b
 # Weighted proportion of White individuals in the NASS 2020 data set
 # Reference value for White Only, (Not Hispanic or Latino) proportion for 
 # only NASS included states from the 2020 US Census
 ########################################
 
 # Filter the census data for the states included in NASS
-filtered_total_population <- total_population_by_age_gender %>%
+filtered_total_population <- total_population_by_age_gender %>% 
   filter(NAME %in% states_in_nass)
 
-filtered_white_population <- total_population_by_age_gender_white %>%
+filtered_white_population <- total_population_by_age_gender_white %>% 
   filter(NAME %in% states_in_nass)
 
 # Calculate the total population and the total white population for these states
@@ -224,3 +221,120 @@ print(paste("Weighted proportion of WHITE in NASS 2020:", coef(weighted_proporti
 # Perform a simple statistical test for the weighted proportion
 weighted_test <- svyttest(WHITE ~ 1, design = svydesign(ids = ~KEY_NASS, weights = ~DISCWT, data = NASS_2020_all), mu = true_proportion_white_nass_states)
 print(weighted_test)
+
+########################################
+# Stage 3 Analysis
+# Break down the NASS 2020 data by age group, and compare the proportions of white individuals
+# at each age, by gender. Show counts in NASS, and run a statistical test at each age bracket to 
+# determine if the NASS proportion of white individuals is significantly different from the Census proportion
+########################################
+
+# Define age groups and their corresponding breaks
+age_breaks <- c(-Inf, 4, 9, 14, 17, 19, 20, 21, 24, 29, 34, 39, 44, 49, 54, 59, 61, 64, 66, 69, 74, 79, 84, Inf)
+age_labels <- c("Under 5 years", "5 to 9 years", "10 to 14 years", "15 to 17 years", "18 and 19 years",
+                "20 years", "21 years", "22 to 24 years", "25 to 29 years", "30 to 34 years",
+                "35 to 39 years", "40 to 44 years", "45 to 49 years", "50 to 54 years", "55 to 59 years",
+                "60 and 61 years", "62 to 64 years", "65 and 66 years", "67 to 69 years", "70 to 74 years",
+                "75 to 79 years", "80 to 84 years", "85 years and over")
+
+# Create age group variable in NASS dataset
+NASS_2020_all <- NASS_2020_all %>% 
+  mutate(AGE_GROUP = cut(AGE, breaks = age_breaks, labels = age_labels, right = TRUE))
+
+# Calculate proportions for NASS_2020_all with confidence intervals
+nass_proportions <- NASS_2020_all %>% 
+  mutate(GENDER = ifelse(FEMALE == 0, "Male", "Female")) %>% 
+  group_by(AGE_GROUP, GENDER) %>% 
+  summarize(
+    total = n(),
+    white = sum(WHITE),
+    proportion_white = white / total,
+    ci_lower = proportion_white - 1.96 * sqrt((proportion_white * (1 - proportion_white)) / total),
+    ci_upper = proportion_white + 1.96 * sqrt((proportion_white * (1 - proportion_white)) / total),
+    .groups = 'drop'
+  ) %>% 
+  filter(!is.na(proportion_white))
+
+# Calculate proportions for Census data
+census_proportions <- total_population_by_age_gender_white %>% 
+  select(NAME, starts_with("Male"), starts_with("Female")) %>% 
+  pivot_longer(cols = -NAME, names_to = "age_gender", values_to = "white_population") %>% 
+  separate(age_gender, into = c("gender", "age_group"), sep = ": ") %>% 
+  left_join(
+    total_population_by_age_gender %>% 
+      select(NAME, starts_with("Male"), starts_with("Female")) %>% 
+      pivot_longer(cols = -NAME, names_to = "age_gender", values_to = "total_population") %>% 
+      separate(age_gender, into = c("gender", "age_group"), sep = ": "),
+    by = c("NAME", "gender", "age_group")
+  ) %>% 
+  group_by(gender, age_group) %>% 
+  summarize(
+    total_population = sum(total_population, na.rm = TRUE),
+    white_population = sum(white_population, na.rm = TRUE),
+    proportion_white = white_population / total_population,
+    .groups = 'drop'
+  ) %>% 
+  filter(!is.na(age_group))
+
+# Convert age groups to factors for proper plotting
+nass_proportions$AGE_GROUP <- factor(nass_proportions$AGE_GROUP, levels = age_labels)
+census_proportions$age_group <- factor(census_proportions$age_group, levels = age_labels)
+census_proportions <- census_proportions %>% filter(!is.na(age_group))
+
+# Plot the trends for males
+plot_males <- ggplot() +
+  geom_line(data = nass_proportions %>% filter(GENDER == "Male"), aes(x = AGE_GROUP, y = proportion_white, color = "NASS", group = 1), linewidth = 1) +
+  geom_ribbon(data = nass_proportions %>% filter(GENDER == "Male"), aes(x = AGE_GROUP, ymin = ci_lower, ymax = ci_upper, fill = "CI", group = 1), alpha = 0.2) +
+  geom_line(data = census_proportions %>% filter(gender == "Male"), aes(x = age_group, y = proportion_white, color = "Census", group = 1), linewidth = 1) +
+  labs(title = "Proportion of White Individuals by Age Group (Males)",
+       x = "Age Group",
+       y = "Proportion White") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.title = element_blank(),
+        legend.position = "none") +
+  scale_y_continuous(limits = c(0, 1))
+
+# Plot the trends for females
+plot_females <- ggplot() +
+  geom_line(data = nass_proportions %>% filter(GENDER == "Female"), aes(x = AGE_GROUP, y = proportion_white, color = "NASS", group = 1), linewidth = 1) +
+  geom_ribbon(data = nass_proportions %>% filter(GENDER == "Female"), aes(x = AGE_GROUP, ymin = ci_lower, ymax = ci_upper, fill = "CI", group = 1), alpha = 0.2) +
+  geom_line(data = census_proportions %>% filter(gender == "Female"), aes(x = age_group, y = proportion_white, color = "Census", group = 1), linewidth = 1) +
+  labs(title = "Proportion of White Individuals by Age Group (Females)",
+       x = "Age Group",
+       y = "Proportion White") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.title = element_blank(),
+        legend.position = "right") +
+  scale_y_continuous(limits = c(0, 1))
+
+# Display the plots side by side
+grid.arrange(plot_males, plot_females, ncol = 2)
+
+# Create a table of counts in NASS by age bracket
+nass_counts <- NASS_2020_all %>%
+  group_by(AGE_GROUP) %>%
+  summarize(count = n(), .groups = 'drop')
+
+# Run a statistical test at each age bracket to determine if the NASS proportion of white individuals is truly different from the Census proportion
+test_results <- nass_proportions %>%
+  left_join(census_proportions, by = c("AGE_GROUP" = "age_group", "GENDER" = "gender")) %>%
+  mutate(
+    white_nass = white,
+    total_nass = total,
+    white_census = white_population,
+    total_census = total_population
+  ) %>%
+  group_by(AGE_GROUP, GENDER) %>%
+  do(tidy(prop.test(.$white_nass, .$total_nass, p = .$proportion_white))) %>%
+  ungroup() %>%
+  select(AGE_GROUP, GENDER, p.value)
+
+# Combine the counts and test results into a single table
+results_table <- nass_counts %>%
+  left_join(test_results, by = "AGE_GROUP") %>%
+  pivot_wider(names_from = GENDER, values_from = c(count, p.value))
+
+# Print the results table
+print(results_table)
