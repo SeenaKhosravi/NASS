@@ -65,7 +65,7 @@ This notebook performs statistical analysis and generates visualizations for the
 1. Set the working directory to the location of the raw HCUP data files and specification files.
 2. Run `load_and_clean_data.R` to load, clean, and prepare the data.
 
-### Google Colab:
+### Google Colab (Higher Ram option):
 1. Upload `NASS_2020_all.csv` to the root of your Google Drive (ensure it is private).
 2. Open the `NASS_Analysis_Notebook.ipynb` in Google Colab (use the badge below or open the notebook directly from this repository).
 3. Run the notebook to perform the analysis and generate visualizations.
@@ -80,11 +80,8 @@ This notebook performs statistical analysis and generates visualizations for the
 
 - **Calculations**:
   - `NASS_2020_all_cleaned.csv`: Cleaned and combined HCUP NASS 2020 data.
-  - `White_Proportion_Analysis.csv`: Results of the age and sociodemographic diversity analysis.
 - **Visualizations**:
   - `Hospitals_by_Region_and_Bed_Size.png`: Bar chart of hospitals by region and bed size.
-  - `Age_Distribution_by_Race.png`: Density plot of age distribution by race.
-  - `NASS_Analysis_Poster.pdf`: Combined PDF of all visualizations for presentation.
 
 ---
 
