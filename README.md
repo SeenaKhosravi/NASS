@@ -90,15 +90,6 @@ NOTE: Outputs limited in advance of presentation at conference. Full outputs wil
 
 ---
 
-## Outputs of Notebook
-
-- **Calculations**:
-  - `NASS_2020_all_cleaned.csv`: Cleaned and combined HCUP NASS 2020 data.
-- **Visualizations**:
-  - `Hospitals_by_Region_and_Bed_Size.png`: Bar chart of hospitals by region and bed size.
-
----
-
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
