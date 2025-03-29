@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains scripts and a notebook for analyzing the HCUP NASS 2020 dataset. The analysis focuses on the utilization of ambulatory surgery, examining geosocioeconomic and demographic drivers. The repository includes a script for loading and cleaning data, as well as a notebook documenting statistical analysis and generating visualizations.
+This repository contains scripts and a notebook for analyzing the HCUP NASS 2020 dataset. The analysis focuses on the utilization of ambulatory surgery, examining socioeconomic and demographic drivers. The repository includes a script for loading and cleaning data, as well as a notebook documenting statistical analysis and generating visualizations.
 
 ---
 
