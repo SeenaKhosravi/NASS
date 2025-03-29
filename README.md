@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains scripts and a notebook for analyzing the HCUP NASS 2020 dataset. The analysis focuses on the utilization of ambulatory surgery, examining geosocioeconomic and demographic drivers. The repository includes a script for loading and cleaning data, as well as a notebook documenting statistical analysis and generating visualizations.
+This repository contains scripts and a notebook for analyzing the HCUP NASS 2020 dataset. The analysis focuses on the utilization of ambulatory surgery, examining socioeconomic and demographic drivers. The repository includes a script for loading and cleaning data, as well as a notebook documenting statistical analysis and generating visualizations.
 
 ---
 
@@ -46,10 +46,22 @@ This notebook performs statistical analysis and generates visualizations for the
 
 NOTE: Outputs limited in advance of presentation at conference. Full outputs will be displayed after Oct. 15th. 
 
-**Key Features**:
-1. **Sociodemographic Analysis via Charts and simple tests**:
-2. **ML Classifier Analysis**:
-3. **Poster Space Setup**:
+**Table of Contents**:
+
+1. **Sociodemographic Analysis**:
+   - Setup and Load Data
+   - Dataset Overview
+   - Institutional Overview
+   - Encounter Overview
+   - Census Benchmarking
+   - Procedure Code Analysis
+   - ML Race Classifier Analysis
+   - ML Rural-Urban Classifier Analysis
+   - Appendix A: Indexing of Case Mix and Diversity vs. Government Pay Mix
+   - Appendix B: Time Series of 2020 Volumes
+   - Appendix C: Age Progression of Surgical Cases
+
+2. **Poster Space Setup**:
    - Combines all visualizations into a single PDF for presentation.
 
 ---
@@ -75,15 +87,6 @@ NOTE: Outputs limited in advance of presentation at conference. Full outputs wil
 <a href="https://colab.research.google.com/github/SeenaKhosravi/NASS/blob/main/NASS_Analysis_Notebook.ipynb" target="_parent">
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
-
----
-
-## Outputs of Notebook
-
-- **Calculations**:
-  - `NASS_2020_all_cleaned.csv`: Cleaned and combined HCUP NASS 2020 data.
-- **Visualizations**:
-  - `Hospitals_by_Region_and_Bed_Size.png`: Bar chart of hospitals by region and bed size.
 
 ---
 
