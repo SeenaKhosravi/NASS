@@ -44,9 +44,11 @@ This script loads and cleans the HCUP NASS 2020 data, defines columns using spec
 **Description**:  
 This notebook performs statistical analysis and generates visualizations for the HCUP NASS 2020 dataset. It is designed to run in Google Colab and assumes the cleaned data (`NASS_2020_all.csv`) is available in the user's Google Drive.
 
+NOTE: Outputs limited in advance of presentation at conference. Full outputs will be displayed after Oct. 15th. 
+
 **Key Features**:
-1. **Age and Sociodemographic Diversity Analysis**:
-2. **Overview Graphs**:
+1. **Sociodemographic Analysis via Charts and simple tests**:
+2. **ML Classifier Analysis**:
 3. **Poster Space Setup**:
    - Combines all visualizations into a single PDF for presentation.
 
