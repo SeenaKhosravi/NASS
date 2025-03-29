@@ -46,10 +46,22 @@ This notebook performs statistical analysis and generates visualizations for the
 
 NOTE: Outputs limited in advance of presentation at conference. Full outputs will be displayed after Oct. 15th. 
 
-**Key Features**:
-1. **Sociodemographic Analysis via Charts and simple tests**:
-2. **ML Classifier Analysis**:
-3. **Poster Space Setup**:
+**Table of Contents**:
+
+1. **Sociodemographic Analysis**:
+   - Setup and Load Data
+   - Dataset Overview
+   - Institutional Overview
+   - Encounter Overview
+   - Census Benchmarking
+   - Procedure Code Analysis
+   - ML Race Classifier Analysis
+   - ML Rural-Urban Classifier Analysis
+   - Appendix A: Indexing of Case Mix and Diversity vs. Government Pay Mix
+   - Appendix B: Time Series of 2020 Volumes
+   - Appendix C: Age Progression of Surgical Cases
+
+2. **Poster Space Setup**:
    - Combines all visualizations into a single PDF for presentation.
 
 ---
