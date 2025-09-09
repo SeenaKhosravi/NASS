@@ -1,4 +1,4 @@
-### Generate_Simulated_Dataset.R
+### Generate_Simulated_NASS.R
 ### 
 ### MIT License
 ### Copyright (c) 2025 Seena Khosravi
