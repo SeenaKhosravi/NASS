@@ -4,14 +4,18 @@
 ### Copyright (c) 2025 Seena Khosravi
 ### 
 ### This script processes the raw 2020 DHS HCUP NASS dataset,
-### creates the full dataset, a subset, and a simulated dataset
+### creates the full dataset and a user defined subset.
 
-# Configuration ------------------------------
+### Designed to be run on local R environment.
+### Please set config prior to run
+
+# ------------------------------
+# Configuration
+
 #set to where you have stored HCUP NASS 2020 dataset and file spec files
-setwd("C:/Users/........") 
+setwd("...")
 
-set.seed(2025)  # For reproducibility of simulated data
-
+# ------------------------------
 
 # Required packages
 required_packages <- c(
@@ -145,101 +149,7 @@ subset_path <- file.path(getwd(), "nass_2020_subset.csv")
 fwrite(NASS_2020_subset, subset_path)
 message(paste("Subset dataset saved to:", subset_path))
 
-# PART 4: CREATE SIMULATED DATASET (1GB) ------------------------------
-
-message("Creating simulated dataset...")
-
-# Function to generate simulated data maintaining distributions
-simulate_nass_data <- function(original_data, target_size_gb = 1) {
-  
-  # Estimate rows needed for target size
-  sample_size <- min(1000, nrow(original_data))
-  sample_data <- original_data[sample(nrow(original_data), sample_size), ]
-  
-  # Write temporary file to estimate size
-  temp_file <- tempfile(fileext = ".csv")
-  fwrite(sample_data, temp_file)
-  file_size_mb <- file.size(temp_file) / (1024^2)
-  unlink(temp_file)
-  
-  # Calculate rows needed for target size
-  rows_per_mb <- sample_size / file_size_mb
-  target_rows <- round(rows_per_mb * target_size_gb * 1024)
-  
-  message(paste("Generating", target_rows, "simulated records..."))
-  
-  # Generate simulated data in chunks to manage memory
-  chunk_size <- 50000
-  num_chunks <- ceiling(target_rows / chunk_size)
-  
-  simulated_list <- list()
-  
-  pb <- txtProgressBar(min = 0, max = num_chunks, style = 3)
-  
-  for(i in 1:num_chunks) {
-    setTxtProgressBar(pb, i)
-    
-    chunk_rows <- min(chunk_size, target_rows - (i-1) * chunk_size)
-    
-    # Sample with replacement from original data
-    sim_chunk <- original_data[sample(nrow(original_data), chunk_rows, replace = TRUE), ]
-    
-    # Add noise to numeric variables
-    numeric_cols <- c("AGE", "TOTCHG", "TOTAL_AS_ENCOUNTERS")
-    for(col in numeric_cols) {
-      if(col %in% names(sim_chunk)) {
-        # Add 5% noise
-        noise <- rnorm(chunk_rows, mean = 1, sd = 0.05)
-        sim_chunk[[col]] <- round(sim_chunk[[col]] * noise)
-        
-        # Ensure valid ranges
-        if(col == "AGE") {
-          sim_chunk[[col]] <- pmax(0, pmin(120, sim_chunk[[col]]))
-        } else if(col == "TOTCHG") {
-          sim_chunk[[col]] <- pmax(0, sim_chunk[[col]])
-        }
-      }
-    }
-    
-    # Generate new IDs
-    sim_chunk$KEY_NASS <- (i-1) * chunk_size + 1:chunk_rows + 90000000
-    
-    simulated_list[[i]] <- sim_chunk
-  }
-  
-  close(pb)
-  
-  # Combine all chunks
-  simulated_data <- rbindlist(simulated_list)
-  
-  # Recalculate age groups
-  simulated_data$AGEGRP <- cut(simulated_data$AGE, 
-                               breaks = c(0, 18, 65, Inf), 
-                               labels = c("0-17", "18-64", "65+"), 
-                               right = FALSE)
-  simulated_data$AGEGRP2 <- cut(simulated_data$AGE, 
-                                breaks = c(0, 18, 40, 55, 65, 70, 80, Inf), 
-                                labels = c("0-17", "18-39", "40-54", "55-64", 
-                                          "65-69", "70-79", "80+"), 
-                                right = FALSE)
-  
-  return(simulated_data)
-}
-
-# Generate simulated dataset
-simulated_data <- simulate_nass_data(NASS_2020_all, target_size_gb = 1)
-
-# Save simulated dataset
-simulated_path <- file.path(getwd(), "nass_2020_simulated.csv")
-fwrite(simulated_data, simulated_path)
-
-actual_size_gb <- file.size(simulated_path) / (1024^3)
-message(paste("Simulated dataset saved to:", simulated_path))
-message(paste("Simulated dataset size:", round(actual_size_gb, 2), "GB"))
-message(paste("Simulated dataset dimensions:", nrow(simulated_data), "rows x", 
-              ncol(simulated_data), "columns"))
-
-# PART 5: GENERATE SUMMARY STATISTICS ------------------------------
+# PART 4: GENERATE SUMMARY STATISTICS ------------------------------
 
 message("Generating summary statistics...")
 
@@ -277,7 +187,7 @@ sink()
 
 message(paste("Summary statistics saved to:", summary_path))
 
-# PART 6: VALIDATION CHECKS ------------------------------
+# PART 5: VALIDATION CHECKS ------------------------------
 
 message("Running validation checks...")
 
@@ -286,17 +196,17 @@ missing_check <- sapply(NASS_2020_all, function(x) sum(is.na(x)))
 high_missing <- missing_check[missing_check > nrow(NASS_2020_all) * 0.1]
 
 if(length(high_missing) > 0) {
-  warning("Columns with >10% missing values:")
+  print("Columns with >10% missing values:")
   print(high_missing)
 }
 
 # Check data ranges
 if(any(NASS_2020_all$AGE < 0 | NASS_2020_all$AGE > 120, na.rm = TRUE)) {
-  warning("Invalid age values detected")
+  print("Invalid age values detected")
 }
 
 if(any(NASS_2020_all$TOTCHG < 0, na.rm = TRUE)) {
-  warning("Negative charge values detected")
+  print("Negative charge values detected")
 }
 
 message("\nProcessing complete!")
