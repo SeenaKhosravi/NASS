@@ -9,7 +9,7 @@ echo "================================================"
 
 # Configuration
 INSTANCE_NAME="nass-analysis"
-MACHINE_TYPE="e2-standard-4"  # 4 vCPUs, 16GB RAM
+MACHINE_TYPE=${MACHINE_TYPE:-"n2-highmem-8"}  # 8 vCPUs, 64GB RAM - override with env var
 BOOT_DISK_SIZE="50GB"
 ZONE=${ZONE:-"us-central1-a"}
 PROJECT_ID=$(gcloud config get-value project)
