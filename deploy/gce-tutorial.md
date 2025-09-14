@@ -150,3 +150,5 @@ gcloud compute instances delete nass-analysis --zone=$ZONE
 **Remember to stop** your instance when done to save costs!
 
 <walkthrough-inline-feedback></walkthrough-inline-feedback>
+
+**Note:** First-time users will be prompted to generate SSH keys. This is normal and secure - just press Enter twice when prompted.
