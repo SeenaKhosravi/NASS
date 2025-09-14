@@ -10,10 +10,10 @@ echo "================================================"
 # Configuration
 INSTANCE_NAME="nass-analysis"
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-highmem-8"}  # 8 vCPUs, 64GB RAM - override with env var
-BOOT_DISK_SIZE="50GB"
+BOOT_DISK_SIZE=${BOOT_DISK_SIZE:-"100GB"}  # 100GB boot disk
 ZONE=${ZONE:-"us-central1-a"}
-# You can override MACHINE_TYPE and ZONE by setting env vars before running the script
-# Example: MACHINE_TYPE="n2-standard-4" ZONE="us-west1-b" ./deploy/deploy-gce.sh
+# You can override MACHINE_TYPE, BOOT_DISK_SIZE, and ZONE by setting env vars before running the script
+# Example: MACHINE_TYPE="n2-standard-4" ZONE="us-west1-b" BOOT_DISK_SIZE="200GB" ./deploy/deploy-gce.sh
 
 # Better project detection and setup
 echo "🔧 Configuring project..."
@@ -93,9 +93,27 @@ else
     echo "✅ Firewall rule already exists"
 fi
 
-# Wait for instance to be ready
-echo "⏳ Waiting for instance to start..."
-gcloud compute instances wait-until-ready $INSTANCE_NAME --zone=$ZONE
+# Wait for instance to be ready and responsive
+echo "⏳ Waiting for instance to start and become ready..."
+for i in {1..12}; do
+    if gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --format="value(status)" | grep -q "RUNNING"; then
+        echo "✅ Instance is running"
+        break
+    fi
+    echo "   Attempt $i/12: Still starting..."
+    sleep 10
+done
+
+# Additional wait for SSH to be ready
+echo "⏳ Waiting for SSH access..."
+for i in {1..6}; do
+    if gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="echo 'SSH ready'" --quiet 2>/dev/null; then
+        echo "✅ SSH is ready"
+        break
+    fi
+    echo "   SSH attempt $i/6: Not ready yet..."
+    sleep 10
+done
 
 # Get external IP
 EXTERNAL_IP=$(gcloud compute instances describe $INSTANCE_NAME \
