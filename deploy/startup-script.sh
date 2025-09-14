@@ -169,6 +169,11 @@ sleep 10
 # Get external IP
 EXTERNAL_IP=$(curl -s ifconfig.me)
 
+
+echo "🔍 Verifying Jupyter is accessible..."
+timeout 30 bash -c 'until curl -s http://localhost:8888 > /dev/null; do sleep 2; done' && echo "✅ Jupyter responding" || echo "⚠️ Jupyter may need more time"
+
+
 echo "=========================================="
 echo "🎉 NASS Analysis Environment Ready!"
 echo "=========================================="
