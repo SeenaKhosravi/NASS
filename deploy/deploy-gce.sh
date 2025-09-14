@@ -14,12 +14,38 @@ BOOT_DISK_SIZE="50GB"
 ZONE=${ZONE:-"us-central1-a"}
 # You can override MACHINE_TYPE and ZONE by setting env vars before running the script
 # Example: MACHINE_TYPE="n2-standard-4" ZONE="us-west1-b" ./deploy/deploy-gce.sh
+
+# Better project detection and setup
+echo "🔧 Configuring project..."
+
+# Try to get current project
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-if [ -z "$PROJECT_ID" ]; then
-    echo "❌ No project configured!"
-    echo "💡 Run: gcloud config set project YOUR_PROJECT_ID"
-    echo "💡 Or: gcloud projects list (to see available projects)"
-    exit 1
+
+# If no project set, try to auto-detect
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "(unset)" ]; then
+    echo "⚠️  No project currently set, auto-detecting..."
+    
+    # Get the first available project
+    PROJECT_ID=$(gcloud projects list --format="value(projectId)" --limit=1 2>/dev/null)
+    
+    if [ -z "$PROJECT_ID" ]; then
+        echo "❌ No projects found!"
+        echo "💡 Please create a project first at: https://console.cloud.google.com/projectcreate"
+        exit 1
+    fi
+    
+    echo "📋 Found project: $PROJECT_ID"
+    echo "� Setting as default project..."
+    gcloud config set project "$PROJECT_ID"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Project configured successfully"
+    else
+        echo "❌ Failed to set project"
+        exit 1
+    fi
+else
+    echo "✅ Using existing project: $PROJECT_ID"
 fi
 
 echo "📋 Configuration:"
