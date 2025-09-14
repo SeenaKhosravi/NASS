@@ -31,6 +31,21 @@ If this isn't correct, click the project selector above.
 
 The Compute Engine API is now enabled for your project.
 
+## Step 2.5: Configure Project
+
+Let's ensure your project is properly configured:
+
+```bash
+# Auto-detect and set your project
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null || gcloud projects list --limit=1 --format="value(projectId)")
+gcloud config set project $PROJECT_ID
+echo "Using project: $PROJECT_ID"
+```
+
+<walkthrough-copy-code-button></walkthrough-copy-code-button>
+
+This ensures the deployment script can access your project.
+
 ## Step 3: Set Your Preferred Zone
 
 Choose a zone close to your location for better performance:

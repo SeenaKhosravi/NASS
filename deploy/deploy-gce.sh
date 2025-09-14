@@ -12,7 +12,15 @@ INSTANCE_NAME="nass-analysis"
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-highmem-8"}  # 8 vCPUs, 64GB RAM - override with env var
 BOOT_DISK_SIZE="50GB"
 ZONE=${ZONE:-"us-central1-a"}
-PROJECT_ID=$(gcloud config get-value project)
+# You can override MACHINE_TYPE and ZONE by setting env vars before running the script
+# Example: MACHINE_TYPE="n2-standard-4" ZONE="us-west1-b" ./deploy/deploy-gce.sh
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+if [ -z "$PROJECT_ID" ]; then
+    echo "❌ No project configured!"
+    echo "💡 Run: gcloud config set project YOUR_PROJECT_ID"
+    echo "💡 Or: gcloud projects list (to see available projects)"
+    exit 1
+fi
 
 echo "📋 Configuration:"
 echo "   Project: $PROJECT_ID"
