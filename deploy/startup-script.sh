@@ -55,7 +55,7 @@ Sys.setenv(MAKEFLAGS = paste0("-j", parallel::detectCores()))
 # Essential packages
 essential_packages <- c(
     "data.table", "ggplot2", "scales", "dplyr", "tidyr",
-    "survey", "broom", "RColorBrewer", "gtsummary"
+    "survey","RColorBrewer"
 )
 
 # Install packages with error handling
