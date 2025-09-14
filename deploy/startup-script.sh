@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# NASS Analysis Environment Setup - Optimized Version
+# NASS Analysis Environment Setup - Fixed for Debian 12+
 # Fast R package installation + Jupyter Lab setup
 
 set -e  # Exit on any error
@@ -13,8 +13,6 @@ exec 2>&1
 echo "🚀 NASS Analysis Environment Setup Starting..."
 echo "================================================"
 echo "Timestamp: $(date)"
-echo "Instance: $(hostname)"
-echo "User: $(whoami)"
 
 # =====================================
 # SYSTEM UPDATES & DEPENDENCIES
@@ -30,6 +28,8 @@ apt-get install -y -qq \
     python3 \
     python3-pip \
     python3-venv \
+    python3-full \
+    pipx \
     r-base \
     r-base-dev \
     git \
@@ -53,7 +53,7 @@ echo "✅ System dependencies installed"
 
 echo "🔧 Installing R packages (optimized approach)..."
 
-# Step 1: Install available system packages (fastest)
+# Install available system packages (fastest)
 echo "📦 Installing R packages via apt (binaries)..."
 apt-get install -y -qq \
     r-cran-data.table \
@@ -69,75 +69,47 @@ apt-get install -y -qq \
     r-cran-mgcv \
     r-cran-nlme \
     r-cran-survival \
-    r-cran-boot \
-    r-cran-cluster \
-    r-cran-foreign \
-    r-cran-class \
-    r-cran-nnet \
-    r-cran-spatial \
-    r-cran-kernsmooth \
-    r-cran-rpart \
     || echo "⚠️ Some apt R packages not available (continuing...)"
 
 echo "✅ System R packages installed"
 
-# Step 2: Install remaining packages from CRAN (binaries only)
+# Install remaining R packages from CRAN
 echo "📦 Installing additional R packages from CRAN..."
 R --slave -e "
-# Configure for speed
 options(repos = c(CRAN = 'https://cloud.r-project.org'))
 options(Ncpus = $(nproc))
 
-# Essential packages not available via apt
-packages_needed <- c('survey', 'rpy2', 'IRkernel')
+packages_needed <- c('survey', 'IRkernel')
 packages_to_install <- packages_needed[!packages_needed %in% rownames(installed.packages())]
 
 if(length(packages_to_install) > 0) {
-  cat('Installing:', paste(packages_to_install, collapse = ', '), '\n')
-  
-  # Try binary first, fallback to source only if necessary
   for(pkg in packages_to_install) {
     cat('Installing', pkg, '...\n')
     tryCatch({
       install.packages(pkg, type = 'binary', dependencies = FALSE, quiet = TRUE)
-      cat('✅', pkg, 'installed (binary)\n')
+      cat('✅', pkg, 'installed\n')
     }, error = function(e) {
-      cat('⚠️ Binary failed for', pkg, ', trying source...\n')
-      tryCatch({
-        install.packages(pkg, type = 'source', dependencies = FALSE, quiet = TRUE)
-        cat('✅', pkg, 'installed (source)\n')
-      }, error = function(e2) {
-        cat('❌', pkg, 'failed:', e2\$message, '\n')
-      })
+      cat('❌', pkg, 'failed\n')
     })
   }
-} else {
-  cat('✅ All required packages already installed\n')
-}
-
-# Verify core packages
-required_core <- c('data.table', 'ggplot2', 'scales')
-missing_core <- required_core[!required_core %in% rownames(installed.packages())]
-
-if(length(missing_core) > 0) {
-  cat('⚠️ Missing core packages:', paste(missing_core, collapse = ', '), '\n')
-  install.packages(missing_core, type = 'binary', dependencies = TRUE)
-} else {
-  cat('✅ All core packages verified\n')
 }
 "
 
 echo "✅ R packages installation complete"
 
 # =====================================
-# PYTHON ENVIRONMENT SETUP
+# PYTHON ENVIRONMENT SETUP (FIXED)
 # =====================================
 
 echo "🐍 Setting up Python environment..."
 
-# Install Python packages
-pip3 install --upgrade pip --quiet
-pip3 install --quiet \
+# Create virtual environment to avoid system package conflicts
+python3 -m venv /opt/python-env
+source /opt/python-env/bin/activate
+
+# Install Python packages in virtual environment
+pip install --upgrade pip
+pip install \
     jupyter \
     jupyterlab \
     pandas \
@@ -154,8 +126,6 @@ echo "✅ Python packages installed"
 # =====================================
 
 echo "📁 Setting up project directory..."
-
-# Create project directory
 mkdir -p /opt/nass
 cd /opt/nass
 
@@ -163,7 +133,7 @@ cd /opt/nass
 echo "📥 Downloading NASS analysis files..."
 wget -q https://github.com/SeenaKhosravi/NASS/archive/refs/heads/main.zip
 unzip -q main.zip
-mv NASS-main/* .
+mv NASS-main/* . 2>/dev/null || true
 rm -rf NASS-main main.zip
 
 echo "✅ Project files downloaded"
@@ -192,22 +162,21 @@ EOF
 echo "✅ Jupyter Lab configured"
 
 # =====================================
-# R KERNEL SETUP FOR JUPYTER
+# R KERNEL SETUP
 # =====================================
 
 echo "🔧 Setting up R kernel for Jupyter..."
 
+source /opt/python-env/bin/activate
 R --slave -e "
 if('IRkernel' %in% rownames(installed.packages())) {
   IRkernel::installspec(user = FALSE)
-  cat('✅ R kernel installed for Jupyter\n')
-} else {
-  cat('⚠️ IRkernel not available - R integration limited\n')
+  cat('✅ R kernel installed\n')
 }
 "
 
 # =====================================
-# SERVICE SETUP
+# SERVICE SETUP (FIXED PATHS)
 # =====================================
 
 echo "🔧 Creating Jupyter service..."
@@ -221,10 +190,10 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/nass
-ExecStart=/usr/local/bin/jupyter lab
+ExecStart=/opt/python-env/bin/jupyter lab
 Restart=always
 RestartSec=10
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/opt/python-env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 [Install]
 WantedBy=multi-user.target
@@ -242,57 +211,50 @@ echo "✅ Jupyter service created and started"
 # =====================================
 
 echo "🔍 Verifying installation..."
-
-# Wait for Jupyter to start
 sleep 10
 
 # Check service status
 if systemctl is-active --quiet jupyter-nass; then
     echo "✅ Jupyter service is running"
+    JUPYTER_STATUS="✅ Running"
 else
     echo "⚠️ Jupyter service not running, attempting manual start..."
     cd /opt/nass
+    source /opt/python-env/bin/activate
     nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' > /var/log/jupyter-manual.log 2>&1 &
     sleep 5
+    JUPYTER_STATUS="⚠️ Manual start"
 fi
 
-# Test local connectivity
+# Test connectivity
 if curl -s http://localhost:8888 > /dev/null; then
     echo "✅ Jupyter responding on localhost:8888"
-    JUPYTER_STATUS="✅ Running"
 else
     echo "⚠️ Jupyter not responding locally"
-    JUPYTER_STATUS="❌ Not responding"
 fi
 
 # Get external IP
 EXTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
 
-echo "📡 External IP detected: $EXTERNAL_IP"
-
-# Test external connectivity
-if curl -s http://$EXTERNAL_IP:8888 > /dev/null; then
-    echo "✅ Jupyter responding on external IP:8888"
-else
-    echo "⚠️ Jupyter not responding on external IP"
-fi
-
 # =====================================
-# FINAL NOTES
+# COMPLETION MESSAGE
 # =====================================
 
-echo "🎉 NASS Analysis Environment Setup Complete!"
-echo "================================================"
-echo "✅ System updated and packages installed"
-echo "✅ R $(R --version | head -1 | cut -d' ' -f3) and Python $(python3 --version | cut -d' ' -f2) ready"
-echo "✅ Jupyter Lab running at http://$EXTERNAL_IP:8888"
-echo ""
-echo "🔧 Manage Jupyter service with:"
-echo "   systemctl status jupyter-nass"
-echo "   systemctl restart jupyter-nass"
-echo ""
-echo "🗂️ Project files located at: /opt/nass"
-echo "📋 Logs available at: /var/log/jupyter.log"
-echo ""
-echo "Setup completed at: $(date)"
-echo "================================================"
+cat << EOF
+
+🎉 NASS Analysis Environment Ready!
+================================================
+
+🔗 Access your analysis at:
+   http://${EXTERNAL_IP}:8888
+
+📊 Status: ${JUPYTER_STATUS}
+
+Setup completed at: $(date)
+Total setup time: $SECONDS seconds
+
+🚀 Happy analyzing!
+
+EOF
+
+echo "🏁 Startup script completed!"
