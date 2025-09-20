@@ -1,0 +1,24 @@
+# Top 10 Ambulatory Surgery Procedures Reference Table
+# Generated: 2025-09-20 13:31:12.273934
+# Category: reference
+# ========================================
+
+
+TOP 10 AMBULATORY SURGERY PROCEDURES - NASS 2020
+==================================================
+
+Rank | CCS Code | Procedure Description
+-----+----------+------------------------------------------
+  1  |    15    | Lens and cataract procedures
+  2  |   160    | Other therapeutic procedures on muscles and tendons
+  3  |    84    | Cholecystectomy and common duct exploration
+  4  |   152    | Arthroplasty knee
+  5  |    85    | Inguinal and femoral hernia repair
+  6  |    86    | Other hernia repair
+  7  |   162    | Other OR therapeutic procedures on joints
+  8  |   124    | Hysterectomy, abdominal and vaginal
+  9  |   175    | Other OR therapeutic procedures on skin and breast
+ 10  |     6    | Decompression peripheral nerve
+
+Coverage: 3,223,125 encounters (41.3% of total)
+Source: HCUP NASS 2020 (7.8M total encounters)
