@@ -27,69 +27,72 @@ This repository provides a comprehensive analysis pipeline for examining socioec
 ### Data Pipeline Flow
 
 ```mermaid
-graph LR
-    A[Raw Data<br/>HCUP NASS 2020<br/>7.8M records] --> B[Preprocessing<br/>Variable filtering<br/>Type conversion<br/>Simulation creation]
-    B --> C[Data Sources]
-    C --> D[Compute Layer]
-    D --> E[Outputs]
-    
-    subgraph "Data Sources"
-        C1[GitHub Simulated<br/>139k records]
-        C2[Google Cloud Storage<br/>Full dataset]
-        C3[Local Files<br/>Custom data]
-        C4[Census API<br/>Population data]
-        C5[Encrypted Auth<br/>Secure access]
+graph TD
+    subgraph "Offline Preprocessing"
+        A[HCUP NASS 2020 Raw<br/>7.8M records] --> B[R Scripts<br/>data preparation]
+        A1[Census Raw Data<br/>DHC 2020] --> B1[R Scripts<br/>population processing]
+        B --> C[Processed Full Dataset<br/>nass_2020_all.csv]
+        B1 --> C1[Census Reference Data<br/>cached population stats]
+        C --> D[Simulation Script<br/>stratified sampling]
+        D --> E[Public Dataset<br/>nass_2020_simulated.csv<br/>139k records]
     end
     
-    subgraph "Compute Layer"
-        D1[Python Primary<br/>Data loading<br/>Preprocessing]
-        D2[R Integration<br/>Statistics<br/>Modeling<br/>Visualization]
+    subgraph "Runtime Data Access"
+        F{Data Source<br/>Selection}
+        F -->|github| G[GitHub Release<br/>Simulated data]
+        F -->|gcs| H[Google Cloud Storage<br/>Full processed data]
+        F -->|local| I[Local Files<br/>Custom data]
+        F -->|drive| J[Google Drive<br/>Shared data]
     end
     
-    subgraph "Outputs"
-        E1[Research Plots<br/>High-res PNG/PDF]
-        E2[Statistical Results<br/>Text summaries]
-        E3[ML Models<br/>Performance metrics]
-        E4[Final Poster<br/>Publication ready]
-        E5[Metadata<br/>Analysis manifest]
+    subgraph "Compute Environment"
+        K{Platform<br/>Selection}
+        K -->|colab| L[Google Colab<br/>Free resources]
+        K -->|local| M[Local Machine<br/>User hardware]
+        K -->|cloud| N[Cloud VM<br/>Scalable resources]
     end
     
-    C --> C1
-    C --> C2
-    C --> C3
-    C --> C4
-    C --> C5
+    subgraph "Analysis Pipeline"
+        O[Python Data Loading<br/>pandas, filtering]
+        P[R Statistical Analysis<br/>via rpy2 integration]
+        Q[Visualization<br/>ggplot2, matplotlib]
+        R[Output Generation<br/>plots, poster, text]
+    end
     
-    D --> D1
-    D --> D2
+    E --> G
+    C --> H
+    C --> I
+    C --> J
+    C1 --> O
     
-    E --> E1
-    E --> E2
-    E --> E3
-    E --> E4
-    E --> E5
+    G --> O
+    H --> O
+    I --> O
+    J --> O
     
-    C1 --> D1
-    C2 --> D1
-    C3 --> D1
-    C4 --> D2
-    C5 --> D1
+    L --> O
+    M --> O
+    N --> O
     
-    D1 --> D2
-    D1 --> E1
-    D1 --> E2
-    D2 --> E1
-    D2 --> E2
-    D2 --> E3
-    D2 --> E4
-    D1 --> E5
+    O --> P
+    P --> Q
+    Q --> R
     
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
+    style A fill:#ffebee
     style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
+    style E fill:#e3f2fd
+    style O fill:#fff3e0
+    style R fill:#fce4ec
 ```
+
+### Use Case Flow Matrix
+
+| Use Case | Data Source | Platform | Setup | Best For |
+|----------|-------------|----------|-------|----------|
+| **Quick Demo** | GitHub (sim.) | Colab | 2 min | Learning, presentations |
+| **Development** | Local files | Local | 10 min | Code development, testing |
+| **Full Research** | GCS (full) | Cloud VM | 5 min | Complete analysis, publications |
+| **Institutional** | Drive (shared) | JupyterHub | Varies | Collaborative research |
 
 ### Platform Support Matrix
 
