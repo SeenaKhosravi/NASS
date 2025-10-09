@@ -24,20 +24,81 @@ This repository provides a comprehensive analysis pipeline for examining socioec
 
 ## Architecture
 
+### Data Pipeline Flow
+
+```mermaid
+graph LR
+    A[Raw Data<br/>HCUP NASS 2020<br/>7.8M records] --> B[Preprocessing<br/>Variable filtering<br/>Type conversion<br/>Simulation creation]
+    B --> C[Data Sources]
+    C --> D[Compute Layer]
+    D --> E[Outputs]
+    
+    subgraph "Data Sources"
+        C1[GitHub Simulated<br/>139k records]
+        C2[Google Cloud Storage<br/>Full dataset]
+        C3[Local Files<br/>Custom data]
+        C4[Census API<br/>Population data]
+        C5[Encrypted Auth<br/>Secure access]
+    end
+    
+    subgraph "Compute Layer"
+        D1[Python Primary<br/>Data loading<br/>Preprocessing]
+        D2[R Integration<br/>Statistics<br/>Modeling<br/>Visualization]
+    end
+    
+    subgraph "Outputs"
+        E1[Research Plots<br/>High-res PNG/PDF]
+        E2[Statistical Results<br/>Text summaries]
+        E3[ML Models<br/>Performance metrics]
+        E4[Final Poster<br/>Publication ready]
+        E5[Metadata<br/>Analysis manifest]
+    end
+    
+    C --> C1
+    C --> C2
+    C --> C3
+    C --> C4
+    C --> C5
+    
+    D --> D1
+    D --> D2
+    
+    E --> E1
+    E --> E2
+    E --> E3
+    E --> E4
+    E --> E5
+    
+    C1 --> D1
+    C2 --> D1
+    C3 --> D1
+    C4 --> D2
+    C5 --> D1
+    
+    D1 --> D2
+    D1 --> E1
+    D1 --> E2
+    D2 --> E1
+    D2 --> E2
+    D2 --> E3
+    D2 --> E4
+    D1 --> E5
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Data Sources  │    │  Compute Layer  │    │     Outputs     │
-├─────────────────┤    ├─────────────────┤    ├─────────────────┤
-│ • GitHub (Sim.) │───▶│ Python Primary  │───▶│ • Research Plots│
-│ • GCS (Full)    │    │ • Data Loading  │    │ • Statistics    │
-│ • Local Files   │    │ • Preprocessing │    │ • ML Models     │
-│ • Google Drive  │    │                 │    │ • Final Poster  │
-│                 │    │ R Integration   │    │                 │
-│ • Census API    │───▶│ • Statistics    │───▶│ • Text Outputs  │
-│ • Encrypted     │    │ • Modeling      │    │ • Manifest      │
-│   Authentication│    │ • Visualization │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+
+### Platform Support Matrix
+
+| Platform | Data Access | Compute Resources | Setup Time | Best For |
+|----------|-------------|-------------------|------------|----------|
+| **Google Colab** | GitHub (sim.) + Drive | Free GPU/TPU | < 2 min | Quick demos, learning |
+| **Local Environment** | All sources | User hardware | 5-10 min | Development, full control |
+| **Cloud VM (GCE)** | All sources | Scalable (8-64GB) | 3-5 min | Large datasets, production |
+| **Jupyter Hub** | All sources | Shared resources | Varies | Institutional use |
 
 ## Quick Start
 
@@ -90,14 +151,70 @@ install.packages(c("tidycensus", "lme4", "randomForest", "xgboost"))
 
 ### Option 3: Cloud VM Deployment
 
-Deploy a pre-configured VM instance with all dependencies:
+Deploy a pre-configured VM instance with all dependencies using our automated deployment system:
+
+#### Quick Launch (Google Cloud Shell)
+
+1. **Click the "Launch on GCE" badge** at the top of this README for guided deployment
+2. **Follow the interactive tutorial** - takes ~5 minutes with step-by-step instructions
+3. **Access your environment** at the provided Jupyter URL
+
+#### Manual Deployment
 
 ```bash
-# Using Google Cloud Shell
+# Clone repository in Google Cloud Shell or local terminal
 git clone https://github.com/SeenaKhosravi/NASS.git
 cd NASS
-bash deploy/setup-gce.sh
+
+# Optional: Customize deployment settings
+export MACHINE_TYPE="n2-highmem-8"    # 8 vCPUs, 64GB RAM (default)
+export ZONE="us-central1-a"           # Your preferred zone
+export BOOT_DISK_SIZE="100GB"         # Storage size
+
+# Deploy VM with automated setup
+bash deploy/deploy-gce.sh
 ```
+
+#### What Gets Deployed
+
+The deployment script automatically:
+- Creates a Debian 12 VM instance (8 vCPUs, 64GB RAM)
+- Installs R 4.0+ with optimized package management
+- Sets up Python 3.8+ with virtual environment
+- Configures Jupyter Lab with R kernel integration
+- Downloads the NASS analysis notebook
+- Creates firewall rules for web access
+- Starts Jupyter Lab service automatically
+
+#### Accessing Your Environment
+
+After deployment (2-4 minutes), you'll receive:
+```
+Deployment initiated successfully!
+External IP: 34.123.45.67
+Jupyter will be available at: http://34.123.45.67:8888
+```
+
+#### Post-Deployment Management
+
+```bash
+# Monitor setup progress
+gcloud compute ssh nass-analysis --zone=$ZONE --command='tail -f /var/log/startup-script.log'
+
+# SSH into your instance
+gcloud compute ssh nass-analysis --zone=$ZONE
+
+# Stop instance to save costs
+gcloud compute instances stop nass-analysis --zone=$ZONE
+
+# Restart when needed
+gcloud compute instances start nass-analysis --zone=$ZONE
+
+# Clean up (WARNING: destroys all data)
+gcloud compute instances delete nass-analysis --zone=$ZONE
+```
+
+**Cost Management**: Remember to stop your instance when not in use to minimize charges. Charges generally range from 0.20-60 dollars/hour. 
 
 ## Data Sources & Configuration
 
