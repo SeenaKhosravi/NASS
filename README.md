@@ -84,23 +84,13 @@ graph TD
     style O fill:#fff3e0
     style R fill:#fce4ec
 ```
-
-### Use Case Flow Matrix
-
-| Use Case | Data Source | Platform | Setup | Best For |
-|----------|-------------|----------|-------|----------|
-| **Quick Demo** | GitHub (sim.) | Colab | 2 min | Learning, presentations |
-| **Development** | Local files | Local | 10 min | Code development, testing |
-| **Full Research** | GCS (full) | Cloud VM | 5 min | Complete analysis, publications |
-| **Institutional** | Drive (shared) | JupyterHub | Varies | Collaborative research |
-
 ### Platform Support Matrix
 
 | Platform | Data Access | Compute Resources | Setup Time | Best For |
 |----------|-------------|-------------------|------------|----------|
 | **Google Colab** | GitHub (sim.) + Drive | Free GPU/TPU | < 2 min | Quick demos, learning |
 | **Local Environment** | All sources | User hardware | 5-10 min | Development, full control |
-| **Cloud VM (GCE)** | All sources | Scalable (8-64GB) | 3-5 min | Large datasets, production |
+| **Cloud VM (GCE)** | All sources | Scalable (8-64GB) | 3-5 min | Complete analysis, production |
 | **Jupyter Hub** | All sources | Shared resources | Varies | Institutional use |
 
 ## Quick Start
